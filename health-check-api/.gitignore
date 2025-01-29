@@ -21,6 +21,7 @@ build/
 .classpath
 .project
 .settings/
+.factorypath
 
 # OS-generated files
 .DS_Store
