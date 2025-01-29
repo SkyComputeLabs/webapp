@@ -38,6 +38,7 @@ Thumbs.db
 
 # Spring Boot specific
 HELP.md
+pom.xml
 
 # Build artifacts
 *.jar
