@@ -34,7 +34,7 @@ public class HealthCheckController {
 
 	@GetMapping
 	public ResponseEntity<String> checkHealth(@RequestBody(required = false) String body,
-			@RequestParam Map<String, String> queryParams, @RequestHeader Map<String, String> headerParams) {
+			@RequestParam Map<String, String> queryParams) {
 
 		headers.setCacheControl("no-cache, no-store, must-revalidate");
 		headers.setPragma("no-cache");
@@ -46,9 +46,6 @@ public class HealthCheckController {
 		if (!queryParams.isEmpty()) {
 			return ResponseEntity.badRequest().headers(headers).build();
 		}
-//		if (!headerParams.isEmpty()) {
-//			return ResponseEntity.badRequest().headers(headers).build();
-//		}
 
 		try {
 			healthCheckService.recordHealthCheck();

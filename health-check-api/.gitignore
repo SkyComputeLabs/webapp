@@ -1,9 +1,6 @@
 # Ignore pom.xml file
 pom.xml
 
-# Ignore application.properties file
-src/main/resources/application.properties
-
 # Ignore compiled class files
 *.class
 
