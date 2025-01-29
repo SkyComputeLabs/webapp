@@ -1,0 +1,63 @@
+# Ignore pom.xml file
+pom.xml
+
+# Ignore application.properties file
+src/main/resources/application.properties
+
+# Ignore compiled class files
+*.class
+
+# Ignore log files
+*.log
+
+# Ignore build directories
+target/
+build/
+
+# Ignore IDE-specific files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Ignore Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Ignore Node modules
+node_modules/
+
+# Spring Boot specific
+HELP.md
+
+# Build artifacts
+*.jar
+*.war
+
+# Python virtual environment
+venv/
+
+# PostgreSQL
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Postman
+Postman Collections/
+
+# Keep src/main and src/test
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
