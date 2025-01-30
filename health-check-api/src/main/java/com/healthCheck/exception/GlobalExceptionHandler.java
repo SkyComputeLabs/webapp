@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,12 +31,12 @@ public class GlobalExceptionHandler {
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
 
-	@ExceptionHandler(HealthCheckException.class)
-	public ResponseEntity<Map<String, String>> handleHealthCheckException(HealthCheckException ex) {
+	@ExceptionHandler({HealthCheckException.class, CannotCreateTransactionException.class})
+	public ResponseEntity<Map<String, String>> handleHealthCheckException(Exception ex) {
 		Map<String, String> response = new HashMap<>();
 		response.put("status", "503");
 		response.put("error", "Service Unavailable");
-		response.put("message", ex.getMessage());
+		response.put("message", "Database connection error.");
 		return new ResponseEntity<>(response, HttpStatus.SERVICE_UNAVAILABLE);
 	}
 }
