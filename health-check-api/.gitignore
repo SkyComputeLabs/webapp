@@ -1,34 +1,40 @@
-# Ignore pom.xml file
-pom.xml
-
-# Ignore compiled class files
+# Compiled source files
 *.class
 
-# Ignore log files
+# Logs
 *.log
 
-# Ignore build directories
+# Build directories
 target/
 build/
 
-# Ignore IDE-specific files
-.idea/
-*.iml
-.vscode/
+# IDE-specific files
+.apt_generated
 .classpath
-.project
-.settings/
 .factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# IntelliJ IDEA
+.idea
+*.iws
+*.iml
+*.ipr
+
+# VS Code
+.vscode/
+
+# Node.js dependencies
+node_modules/
 
 # OS-generated files
 .DS_Store
 Thumbs.db
 
-# Ignore Maven wrapper
-.mvn/wrapper/maven-wrapper.jar
-
-# Ignore Node modules
-node_modules/
+# Maven wrapper
+!.mvn/wrapper/maven-wrapper.jar
 
 # Spring Boot specific
 HELP.md
