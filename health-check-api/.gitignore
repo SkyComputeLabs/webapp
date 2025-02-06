@@ -64,3 +64,5 @@ Postman Collections/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+# Environment variables
+.env
