@@ -7,7 +7,6 @@ on:
 
 jobs:
   build-test:
-    name: User Onboarding API Build and Test
     runs-on: ubuntu-latest
 
     services:
