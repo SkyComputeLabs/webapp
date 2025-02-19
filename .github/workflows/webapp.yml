@@ -18,6 +18,9 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
         ports:
           - 5000:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s
+          --health-retries 5
 
     steps:
     - name: Checkout code
@@ -31,6 +34,9 @@ jobs:
 
     - name: Build with Maven
       run: mvn clean install
+
+    - name: Wait for PostgreSQL to be ready
+      run: sleep 15  
 
     - name: Run tests
       env:
