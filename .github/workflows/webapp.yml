@@ -4,9 +4,6 @@ on:
   pull_request:
     branches:
       - 'main'
-    paths:
-      - ''
-      - '.github/workflows/webapp.yml'
 
 jobs:
   build-test:
@@ -30,7 +27,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ${{ secrets.DB_USERNAME }} -d ${{ secrets.DB_NAME }}"
+          --health-cmd "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
           --health-interval 10s
            --health-timeout 5s
           --health-retries 5
