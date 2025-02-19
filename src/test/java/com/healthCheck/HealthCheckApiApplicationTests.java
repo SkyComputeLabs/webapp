@@ -20,9 +20,9 @@ import static org.hamcrest.Matchers.*;
 import com.healthCheck.repository.HealthCheckRepository;
 import com.healthCheck.service.HealthCheckService;
 
-//@ExtendWith(MockitoExtension.class)
+@ExtendWith(MockitoExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-//@AutoConfigureMockMvc
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class HealthCheckApiApplicationTests {
 	
