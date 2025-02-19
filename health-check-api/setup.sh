@@ -55,6 +55,41 @@ echo "Updating the permissions..."
 sudo chown -R csye6225_user:csye6225_group /opt/csye6225
 sudo chmod -R 750 /opt/csye6225
 
+echo "Checking if Java is installed..."
+if ! command -v java &> /dev/null; then
+    echo "Java not found. Installing OpenJDK..."
+    sudo apt install -y openjdk-17-jdk
+else
+    echo "Java is already installed."
+fi
+
+echo "Setting JAVA_HOME..."
+export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+echo "export JAVA_HOME=$JAVA_HOME" >> ~/.bashrc
+source ~/.bashrc
+
+# Run the Spring Boot application
+echo "Starting the Spring Boot application..."
+cd /opt/csye6225/Shrutkeerti_Sangolkar_002304742_02/webapp/health-check-api
+sudo -u csye6225_user nohup java -jar target/health-check-api-0.0.1-SNAPSHOT.jar > /dev/null 2>&1 &
+
+# Wait for the application to start
+echo "Waiting for the application to start..."
+sleep 20
+
+# Run test cases
+echo "Running test cases..."
+cd /opt/csye6225//Shrutkeerti_Sangolkar_002304742_02/webapp/health-check-api
+sudo -u csye6225_user ./mvnw test
+
+# Check if the application is running
+if pgrep -f "health-check-api-0.0.1-SNAPSHOT.jar" > /dev/null
+then
+    echo "Spring Boot application is running."
+else
+    echo "Failed to start Spring Boot application."
+fi
+
 #echo "Checking if Java is installed..."
 #if ! command -v java &> /dev/null; then
 #    echo "Java not found. Installing OpenJDK..."
@@ -84,6 +119,7 @@ sudo chmod -R 750 /opt/csye6225
 
 # Check if the application is running
 #if pgrep -f "health-check-api-0.0.1-SNAPSHOT.jar" > /dev/null
+
 
 #Print completion message
 echo "Setup completed successfully"
