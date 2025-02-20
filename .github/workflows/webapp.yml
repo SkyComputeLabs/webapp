@@ -5,8 +5,7 @@ on:
     branches:
       - 'main'
     paths:
-      - ''
-      - '.github/workflows/app-workflow.yaml'
+      - '**'
 
 jobs:
   build-test:
