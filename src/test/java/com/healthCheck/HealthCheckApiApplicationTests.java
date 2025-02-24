@@ -49,7 +49,7 @@ public class HealthCheckApiApplicationTests {
     public void testGetRequestReturns200() {
         given()
             .when().get(getBaseUrl())
-            .then().statusCode(200)
+            .then().statusCode(100)
             .header("Cache-Control", "no-cache, no-store, must-revalidate")
             .header("Pragma", "no-cache")
             .header("X-Content-Type-Options", "nosniff")
