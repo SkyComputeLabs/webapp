@@ -37,7 +37,7 @@ source "amazon-ebs" "ubuntu" {
   instance_type = "t2.small"
   region        = var.aws_region
   source_ami    = var.aws_source_ami
-  ssh_username = "ubuntu"
+  ssh_username  = "ubuntu"
   tags = {
     Name = "health-check-api"
   }
