@@ -17,10 +17,10 @@ jobs:
           version: '1.8.7'
 
       - name: Initialize Packer
-        run: packer init .
+        run: packer init webapp.pkr.hcl
 
       - name: Check Packer Formatting
-        run: packer fmt -check .
+        run: packer fmt -check webapp.pkr.hcl
 
       - name: Validate Packer Template
         run: packer validate webapp.pkr.hcl
