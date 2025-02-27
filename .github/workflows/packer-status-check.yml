@@ -1,0 +1,26 @@
+name: Packer Status Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  packer-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: '1.8.7'
+
+      - name: Initialize Packer
+        run: packer init .
+
+      - name: Check Packer Formatting
+        run: packer fmt -check .
+
+      - name: Validate Packer Template
+        run: packer validate webapp.pkr.hcl

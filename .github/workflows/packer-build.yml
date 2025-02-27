@@ -1,0 +1,40 @@
+name: Packer Build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  packer-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Checkout repository
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: '1.8.7'  
+
+      - name: Initialize Packer
+        run: packer init .
+
+      - name: Check Packer Formatting
+        run: packer fmt -check .
+
+      - name: Validate Packer Template
+        run: packer validate webapp.pkr.hcl
+
+      - name: Run Packer build
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+            packer build -var "aws_region=${AWS_REGION}" webapp.pkr.hcl
