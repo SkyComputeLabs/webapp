@@ -76,10 +76,10 @@ jobs:
           version: '1.8.7'  
 
       - name: Initialize Packer
-        run: packer init webapp.pkr.hcl
+        run: packer init .
 
       - name: Check Packer Formatting
-        run: packer fmt -check webapp.pkr.hcl
+        run: packer fmt webapp.pkr.hcl
 
       - name: Validate Packer Template
         run: packer validate webapp.pkr.hcl
