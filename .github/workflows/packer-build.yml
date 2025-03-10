@@ -57,11 +57,26 @@ jobs:
       - name: Run Tests
         run: mvn test
 
+      - name: Create WebApp Zip File
+        run: |
+          zip -r webapp.zip src target pom.xml .env csye6225.service
+
+      - name: Upload WebApp Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: webapp-artifact
+          path: webapp.zip
+
   packer-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Download WebApp Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: webapp-artifact
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

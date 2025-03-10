@@ -58,13 +58,14 @@ build {
     "source.googlecompute.ubuntu"
   ]
 
-  #Installs application dependencies (Java 17).
+  #Installs application dependencies.
   provisioner "shell" {
     inline = [
       "export DEBIAN_FRONTEND=noninteractive",
       "sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 437D05B5",
       "sudo apt-get update -o Acquire::Retries=1",
       "sudo apt-get install -y postgresql postgresql-client postgresql-contrib -o Acquire::Retries=1",
+      "sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release",
       "sudo apt-get install -y openjdk-17-jdk -o Acquire::Retries=1",
       "sudo apt-get install -y tomcat9 -o Acquire::Retries=1",
       "sudo apt-get install -y maven -o Acquire::Retries=1",
@@ -81,41 +82,58 @@ build {
 
   # Copies the entire webapp directory to the instance
   provisioner "file" {
-    source      = "." # Current directory 
-    destination = "/opt/csye6225/webapp"
+    source      = "./webapp.zip" # Current directory 
+    destination = "/tmp/webapp.zip"
   }
 
-  # Changes ownership and runs setup script
+  # Copy the systemd service file to the instance
+  provisioner "file" {
+    source      = "./csye6225.service"
+    destination = "/tmp/csye6225.service"
+  }
+
+  # Unzip the application and configure it on the instance
   provisioner "shell" {
     inline = [
-      "sudo chown -R csye6225:csye6225 /opt/csye6225/webapp",
-      "sudo bash /opt/csye6225/webapp/setup.sh"
+      "set -x",
+      # Unzip webapp.zip into /opt/csye6225 directory
+      "sudo unzip /tmp/webapp.zip -d /opt/csye6225/ || exit 1",
+      # Set ownership of files to csye6225 user and group
+      "sudo chown -R csye6225:csye6225 /opt/csye6225/ || exit 1",
+      "sudo chmod +x /opt/csye6225/target/health-check-api-0.0.1-SNAPSHOT.jar || exit 1",
+      # Move systemd service file to /etc/systemd/system/
+      "sudo mv /tmp/csye6225.service /etc/systemd/system/ || exit 1",
+      # Reload systemd daemon and enable/start the service
+      "sudo systemctl daemon-reload || exit 1",
+      "sudo systemctl enable csye6225.service || exit 1",
+      "sudo systemctl start csye6225.service || exit 1",
+      "sudo systemctl status csye6225.service || exit 1",
     ]
   }
-
-  # #Moves the application jar file to the desired location.
-  # provisioner "shell" {
-  #   inline = [
-  #     "sudo mv /tmp/health-check-api-0.0.1-SNAPSHOT.jar /opt/csye6225/",
-  #     "sudo chown csye6225:csye6225 /opt/csye6225/health-check-api-0.0.1-SNAPSHOT.jar",
-  #   ]
-  # }
-
-  # #Copies the systemd service file to the instance.
-  # provisioner "file" {
-  #   source      = "csye6225.service"
-  #   destination = "/tmp/csye6225.service"
-  # }
-
-  # #Adds and enables a systemd service file
-  # provisioner "shell" {
-  #   inline = [
-  #     "sudo mv /tmp/csye6225.service /etc/systemd/system/",
-  #     "sudo systemctl daemon-reload",
-  #     "sudo systemctl enable csye6225.service",
-  #     "sudo systemctl start csye6225.service",
-  #   ]
-  # }
-
-
 }
+
+# #Moves the application jar file to the desired location.
+# provisioner "shell" {
+#   inline = [
+#     "sudo mv /tmp/health-check-api-0.0.1-SNAPSHOT.jar /opt/csye6225/",
+#     "sudo chown csye6225:csye6225 /opt/csye6225/health-check-api-0.0.1-SNAPSHOT.jar",
+#   ]
+# }
+
+# #Copies the systemd service file to the instance.
+# provisioner "file" {
+#   source      = "csye6225.service"
+#   destination = "/tmp/csye6225.service"
+# }
+
+# #Adds and enables a systemd service file
+# provisioner "shell" {
+#   inline = [
+#     "sudo mv /tmp/csye6225.service /etc/systemd/system/",
+#     "sudo systemctl daemon-reload",
+#     "sudo systemctl enable csye6225.service",
+#     "sudo systemctl start csye6225.service",
+#   ]
+# }
+
+
