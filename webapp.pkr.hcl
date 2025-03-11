@@ -31,6 +31,16 @@ variable "aws_source_ami" {
   default = "ami-04ffc9f7871904759"
 }
 
+variable "db_user" {
+  type        = string
+  description = "The database username for the application"
+}
+
+variable "db_pass" {
+  type        = string
+  description = "The database password for the application"
+}
+
 #build images for AWS and GCP
 source "amazon-ebs" "ubuntu" {
   ami_name      = "csye6225-${formatdate("YYYY-MM-DD_HH_mm_ss", timestamp())}"
@@ -78,7 +88,7 @@ build {
 
       # Create a database and user for the application
       "sudo -u postgres psql -c \"CREATE DATABASE IF NOT EXISTS healthcheck_db;\"",
-      "sudo -u postgres psql -c \"CREATE USER IF NOT EXISTS '$(var.db_user}'@'localhost' IDENTIFIED BY '$(var.db_password)';\"",
+      "sudo -u postgres psql -c \"CREATE USER IF NOT EXISTS '$(var.db_user}'@'localhost' IDENTIFIED BY '$(var.db_pass)';\"",
       "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON healthcheck_db.* TO '$(var.db_user)'@'localhost';\"",
       # Create a group and user for the application
       "sudo groupadd csye6225",
@@ -87,8 +97,8 @@ build {
       "sudo mkdir -p /opt/csye6225",
       "sudo chown -R csye6225:csye6225 /opt/csye6225",
       "sudo chmod -R 750 /opt/csye6225",
-      "sudo sed -i 's/DB_USER/${{ secrets.DB_USER }}/g' /tmp/application.properties",
-      "sudo sed -i 's/DB_PASS/${{ secrets.DB_PASS }}/g' /tmp/application.properties"
+      "sudo sed -i 's/DB_USER/${{ var.db_user }}/g' /tmp/application.properties",
+      "sudo sed -i 's/DB_PASS/${{ var.db_pass }}/g' /tmp/application.properties"
     ]
   }
 
