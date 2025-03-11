@@ -111,7 +111,7 @@ build {
   # Copies the entire webapp directory to the instance
   provisioner "file" {
     # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
-    source      = "/tmp/webapp.jar"
+    source      = "webapp.jar"
     destination = "/tmp/webapp.jar"
     generated   = true
   }
@@ -124,7 +124,7 @@ build {
   }
 
   provisioner "file" {
-    source      = "/tmp/application.properties"
+    source      = "application.properties"
     destination = "/tmp/application.properties"
     generated   = true
   }
