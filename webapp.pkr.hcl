@@ -111,7 +111,7 @@ build {
   # Copies the entire webapp directory to the instance
   provisioner "file" {
     # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
-    source      = "./target/health-check-api-0.0.1-SNAPSHOT.jar"
+    source      = "../health-check-api-0.0.1-SNAPSHOT.jar"
     destination = "/tmp/health-check-api-0.0.1-SNAPSHOT.jar"
   }
 
