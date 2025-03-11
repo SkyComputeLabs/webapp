@@ -99,8 +99,8 @@ build {
       "sudo chmod -R 750 /opt/csye6225",
 
       # Replace placeholders in application.properties using environment variables
-      "/bin/bash -c 'sed -i \"s/DB_USER/${DB_USER}/g\" /tmp/application.properties'",
-      "/bin/bash -c 'sed -i \"s/DB_PASS/${DB_PASS}/g\" /tmp/application.properties'"
+      "/bin/bash -c 'sed -i \"s/DB_USER/${var.db_user}/g\" /tmp/application.properties'",
+      "/bin/bash -c 'sed -i \"s/DB_PASS/${var.db_pass}/g\" /tmp/application.properties'"
     ]
     environment_vars = [
        "DB_USER=${var.db_user}",
@@ -111,7 +111,7 @@ build {
   # Copies the entire webapp directory to the instance
   provisioner "file" {
     # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
-    source      = "${path.root}/../target/health-check-api-0.0.1-SNAPSHOT.jar"
+    source      = "webapp/target/health-check-api-0.0.1-SNAPSHOT.jar"
     destination = "/tmp/health-check-api-0.0.1-SNAPSHOT.jar"
   }
 
@@ -123,7 +123,7 @@ build {
   }
 
   provisioner "file" {
-    source      = "${path.root}/application.properties"
+    source      = "webapp/src/main/resources/application.properties"
     destination = "/tmp/application.properties"
   }
 
