@@ -73,7 +73,7 @@ jobs:
         run: cd webapp
              packer init .
              packer validate .
-             packer build .
+             packer build -var "db_user=${{ secrets.DB_USER }}" -var "db_pass=${{ secrets.DB_PASS }}" .
 
       - name: Retrieve AWS AMI ID
         run: AMI_ID=$(aws ec2 describe-images --owners self --filters Name=name, Values=csye6225-*-webapp-image-* --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
