@@ -31,6 +31,16 @@ variable "aws_source_ami" {
   default = "ami-04ffc9f7871904759"
 }
 
+variable "db_user" {
+  type = string
+  default = "root"
+}
+
+variable "db_pass" {
+  type = string
+  default = "root"
+}
+
 #build images for AWS and GCP
 source "amazon-ebs" "ubuntu" {
   ami_name      = "csye6225-${formatdate("YYYY-MM-DD_HH_mm_ss", timestamp())}"
