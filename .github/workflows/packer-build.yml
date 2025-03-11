@@ -40,7 +40,10 @@ jobs:
         run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
 
       - name: Copy application.properties to /tmp/
-        run: cp webapp/src/main/resources/application.properties /tmp/application.properties
+        run: |
+              sed -i 's/DB_USER/${{ secrets.DB_USER }}/g' webapp/src/main/resources/application.properties
+              sed -i 's/DB_PASS/${{ secrets.DB_PASS }}/g' webapp/src/main/resources/application.properties
+              cp webapp/src/main/resources/application.properties /tmp/application.properties
 
       - name: Build application artifacts
         run: cd webapp 
@@ -73,8 +76,8 @@ jobs:
         run: |
             cd webapp
             packer init .
-            packer validate -var-file=variables.pkrvars.hcl .
-            packer build -var-file=variables.pkrvars.hcl .
+            packer validate .
+            packer build .
         env:
           PACKER_LOG: 1
 
