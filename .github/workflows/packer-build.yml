@@ -76,8 +76,9 @@ jobs:
         run: |
             cd webapp
             packer init .
-            packer validate .
-            packer build .
+            packer validate -var-file=variables.pkrvars.hcl webapp.pkr.hcl
+            packer build -var-file=variables.pkrvars.hcl webapp.pkr.hcl
+
         env:
           PACKER_LOG: 1
 
