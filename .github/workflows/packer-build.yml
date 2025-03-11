@@ -4,88 +4,88 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'webapp/**'
 
 jobs:
   build-test:
     name: User Onboarding API Build and Test
     runs-on: ubuntu-latest
 
-    env:
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASS: ${{ secrets.DB_PASS }}
-      DB_PORT: 5432
-      DB_HOST: localhost
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: ${{ secrets.DB_NAME }}
-          POSTGRES_USER: ${{ secrets.DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASS }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      - name: Set up AWS CLI 
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          java-version: '17'
-          distribution: 'adopt'
-          cache: 'maven'
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          export_default_credentials: true
 
-      - name: Wait for PostgreSQL to be ready
+      - name: Set up GCP SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          credentials: ${{ secrets.GCP_DEV_ACCOUNT_JSON }}
+
+      - name: Decode GCP Service Account JSON
+        run: echo "${{ secrets.GCP_DEV_ACCOUNT_JSON }}" | base64 --decode > "$HOME/gcp_dev_account.json"
+
+      - name: Authenticate with gcloud 
+        run: gcloud auth activate-service-account --key-file="$HOME/gcp_dev_account.json"
+
+      - name: Set GOOGLE_APPLICATION_CREDENTIALS
+        run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
+
+      - name: Copy application.properties to /tmp/
         run: |
-          for i in {1..30}; do
-            pg_isready -h localhost -p 5432 -U ${{ secrets.DB_USER }} -d ${{ secrets.DB_NAME }} && break
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
+              sed -i 's/DB_USER/${{ secrets.DB_USER }}/g' webapp/src/main/resources/application.properties
+              sed -i 's/DB_PASS/${{ secrets.DB_PASS }}/g' webapp/src/main/resources/application.properties
+              cp webapp/src/main/resources/application.properties /tmp/application.properties
 
-      - name: Install Maven dependencies
-        run: mvn install -DskipTests
-
-      - name: Run Tests
-        run: mvn test
-
-  packer-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Setup Packer
-        uses: hashicorp/setup-packer@main
-        with:
-          version: '1.8.7'  
-
-      - name: Initialize Packer
-        run: packer init .
-
-      - name: Check Packer Formatting
-        run: packer fmt webapp.pkr.hcl
-
-      - name: Validate Packer Template
-        run: packer validate webapp.pkr.hcl
-
-      - name: Run Packer build
+      - name: Build application artifacts
+        run: cd webapp 
+             mvn clean package -DskipTests
+             cp target/*.jar /tmp/webapp.jar
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+
+      - name: Set up packer variables
         run: |
-            packer build -var "aws_region=${AWS_REGION}" webapp.pkr.hcl
+              echo "export PACKER_VAR_DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
+              echo "export PACKER_VAR_DB_PASS=${{ secrets.DB_PASS }}" >> $GITHUB_ENV
+              echo "export PACKER_VAR_gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_ENV
+              echo "export PACKER_VAR_aws_region=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
+              echo "PACKER_VAR_JAR_PATH=/tmp/webapp.jar" >> $GITHUB_ENV # New JAR_PATH variable
+              echo "PACKER_VAR_APP_PROPERTIES=/tmp/application.properties" >> $GITHUB_ENV
+              echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+              echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+              echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install hashicorp/setup-packer
+        uses: hashicorp/setup-packer@v2
+        with:
+          version: latest
+
+      - name: Run Packer to build the custom image
+        run: |
+            cd webapp
+            packer init .
+            packer validate .
+            packer build .
+        env:
+            PKR_VAR_db_user: ${{ secrets.DB_USER }}
+            PKR_VAR_db_pass: ${{ secrets.DB_PASS }}
+
+
+      - name: Retrieve AWS AMI ID
+        run: AMI_ID=$(aws ec2 describe-images --owners self --filters Name=name, Values=csye6225-*-webapp-image-* --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
+             echo "AMI_ID=$AMI_ID"
+             echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+
+      
