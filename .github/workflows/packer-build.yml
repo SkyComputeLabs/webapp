@@ -48,7 +48,7 @@ jobs:
       - name: Build application artifacts
         run: cd webapp 
              mvn clean package -DskipTests
-             cp webapp/target/*.jar /tmp/webapp.jar
+             cp target/*.jar /tmp/webapp.jar
         env:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}

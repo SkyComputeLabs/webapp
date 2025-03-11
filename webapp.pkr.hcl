@@ -111,19 +111,19 @@ build {
   # Copies the entire webapp directory to the instance
   provisioner "file" {
     # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
-    source      = "../health-check-api-0.0.1-SNAPSHOT.jar"
-    destination = "/tmp/health-check-api-0.0.1-SNAPSHOT.jar"
+    source      = "/tmp/webapp.jar"
+    destination = "/tmp/webapp.jar"
   }
 
   provisioner "shell"{
     inline = [
-      "sudo mv /tmp/health-check-api-0.0.1-SNAPSHOT.jar /home/csye6225/",
-      "sudo chown csye6225:csye6225 /home/csye6225/health-check-api-0.0.1-SNAPSHOT.jar",
+      "sudo mv /tmp/webapp.jar /home/csye6225/",
+      "sudo chown csye6225:csye6225 /home/csye6225/webapp.jar",
     ]
   }
 
   provisioner "file" {
-    source      = "./src/main/resources/application.properties"
+    source      = "/tmp/application.properties"
     destination = "/tmp/application.properties"
   }
 
