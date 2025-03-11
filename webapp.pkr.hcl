@@ -88,8 +88,8 @@ build {
 
       # Create a database and user for the application
       "sudo -u postgres psql -c \"CREATE DATABASE IF NOT EXISTS healthcheck_db;\"",
-      "/bin/bash -c 'sudo -u postgres psql -c \"CREATE USER \\\"${DB_USER}\\\" WITH PASSWORD \\\"${DB_PASS}\\\";\"'",
-      "/bin/bash -c 'sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE healthcheck_db TO \\\"${DB_USER}\\\";\"'",
+      "sudo -u postgres psql -c \"CREATE USER \\\"${var.db_user}\\\" WITH PASSWORD \\\"${var.db_pass}\\\";\"'",
+      "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE healthcheck_db TO \\\"${var.db_user}\\\";\"'",
       # Create a group and user for the application
       "sudo groupadd csye6225",
       "sudo useradd -g csye6225 -s /usr/sbin/nologin csye6225",
@@ -103,15 +103,15 @@ build {
       "/bin/bash -c 'sed -i \"s/DB_PASS/${DB_PASS}/g\" /tmp/application.properties'"
     ]
     environment_vars = [
-      "DB_USER=${PKR_VAR_db_user}",
-      "DB_PASS=${PKR_VAR_db_pass}",
-    ]
+       "DB_USER=${var.db_user}",
+       "DB_PASS=${var.db_pass}"
+   ]
   }
 
   # Copies the entire webapp directory to the instance
   provisioner "file" {
     # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
-    source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
+    source      = "${path.root}/../target/health-check-api-0.0.1-SNAPSHOT.jar"
     destination = "/tmp/health-check-api-0.0.1-SNAPSHOT.jar"
   }
 
@@ -123,7 +123,7 @@ build {
   }
 
   provisioner "file" {
-    source      = "./application.properties"
+    source      = "${path.root}/application.properties"
     destination = "/tmp/application.properties"
   }
 
@@ -133,8 +133,8 @@ build {
       "sudo chown csye6225:csye6225 /home/csye6225/application.properties",
     ]
      environment_vars = [
-      "DB_USER=${PKR_VAR_db_user}",
-      "DB_PASS=${PKR_VAR_db_pass}"
+       "DB_USER=${var.db_user}",
+       "DB_PASS=${var.db_pass}"
     ]
   }
 
