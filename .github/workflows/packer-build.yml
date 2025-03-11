@@ -70,13 +70,14 @@ jobs:
           version: latest
 
       - name: Run Packer to build the custom image
-        run: cd webapp
-          packer init .
-          packer validate -var "db_user=$DB_USER" -var "db_pass=$DB_PASS" .
-          packer build -var "db_user=$DB_USER" -var "db_pass=$DB_PASS" .
+        run: |
+            cd webapp
+            packer init .
+            packer validate -var "db_user=${{ secrets.DB_USER }}" -var "db_pass=${{ secrets.DB_PASS }}" .
+            packer build -var "db_user=${{ secrets.DB_USER }}" -var "db_pass=${{ secrets.DB_PASS }}" .
         env:
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
+          PACKER_LOG: 1
+
 
 
       - name: Retrieve AWS AMI ID
