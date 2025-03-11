@@ -77,7 +77,7 @@ jobs:
             cd webapp
             packer init .
             packer validate .
-            packer build .
+            packer build -machine-readable .
         env:
             PKR_VAR_db_user: ${{ secrets.DB_USER }}
             PKR_VAR_db_pass: ${{ secrets.DB_PASS }}
