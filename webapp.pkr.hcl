@@ -113,6 +113,7 @@ build {
     # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
     source      = "/tmp/webapp.jar"
     destination = "/tmp/webapp.jar"
+    generated   = true
   }
 
   provisioner "shell"{
@@ -125,6 +126,7 @@ build {
   provisioner "file" {
     source      = "/tmp/application.properties"
     destination = "/tmp/application.properties"
+    generated   = true
   }
 
   provisioner "shell"{
