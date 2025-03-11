@@ -87,12 +87,14 @@ build {
       "sudo mkdir -p /opt/csye6225",
       "sudo chown -R csye6225:csye6225 /opt/csye6225",
       "sudo chmod -R 750 /opt/csye6225",
+      "sudo sed -i 's/DB_USER/${{ secrets.DB_USER }}/g' /tmp/application.properties",
+      "sudo sed -i 's/DB_PASS/${{ secrets.DB_PASS }}/g' /tmp/application.properties"
     ]
   }
 
   # Copies the entire webapp directory to the instance
   provisioner "file" {
-    source      = "./target/health-check-api-0.0.1-SNAPSHOT.jar"
+    source      = "./health-check-api-0.0.1-SNAPSHOT.jar"
     destination = "/tmp/health-check-api-0.0.1-SNAPSHOT.jar"
   }
 

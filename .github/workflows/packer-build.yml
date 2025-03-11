@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '**/*.pkr.hcl'
+      - 'webapp/**'
 
 jobs:
   build-test:
@@ -45,7 +45,7 @@ jobs:
       - name: Build application artifacts
         run: cd webapp 
              mvn clean package -DskipTests
-             cp target/*.jar /tmp/webapp.jar
+             cp webapp/target/*.jar /tmp/webapp.jar
         env:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
@@ -57,7 +57,12 @@ jobs:
               echo "export PACKER_VAR_DB_PASS=${{ secrets.DB_PASS }}" >> $GITHUB_ENV
               echo "export PACKER_VAR_gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_ENV
               echo "export PACKER_VAR_aws_region=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
-              echo "export PACKER_VAR_gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_ENV
+              echo "PACKER_VAR_JAR_PATH=/tmp/webapp.jar" >> $GITHUB_ENV # New JAR_PATH variable
+              echo "PACKER_VAR_APP_PROPERTIES=/tmp/application.properties" >> $GITHUB_ENV
+              echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+              echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+              echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
+        shell: bash
 
       - name: Install hashicorp/setup-packer
         uses: hashicorp/setup-packer@v2
@@ -65,13 +70,14 @@ jobs:
           version: latest
 
       - name: Run Packer to build the custom image
-        run: cd $GITHUB_WORKSPACE
+        run: cd webapp
              packer init .
              packer validate .
              packer build .
 
       - name: Retrieve AWS AMI ID
-        run: AMI_ID=$(aws ec2 describe-images --owners self --filters Name=name, Values=csye6225-webapp-image-* --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
+        run: AMI_ID=$(aws ec2 describe-images --owners self --filters Name=name, Values=csye6225-*-webapp-image-* --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
              echo "AMI_ID=$AMI_ID"
+             echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
 
       
