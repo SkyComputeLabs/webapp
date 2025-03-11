@@ -24,7 +24,7 @@ variable "gcp_project_id" {
 
 variable "gcp_zone" {
   type    = string
-  default = "us-central1-a"
+  default = "us-east1-b"
 }
 
 variable "aws_source_ami" {
@@ -34,7 +34,7 @@ variable "aws_source_ami" {
 #build images for AWS and GCP
 source "amazon-ebs" "ubuntu" {
   ami_name      = "csye6225-${formatdate("YYYY-MM-DD_HH_mm_ss", timestamp())}"
-  instance_type = "t2.small"
+  instance_type = "t2.micro"
   region        = var.aws_region
   source_ami    = var.aws_source_ami
   ssh_username  = "ubuntu"
@@ -72,8 +72,18 @@ build {
       "sudo apt-get install -y unzip -o Acquire::Retries=1",
       "sudo apt-get install -y awscli -o Acquire::Retries=1",
       "sudo apt-get install -y git -o Acquire::Retries=1",
+      # Start and enable the PostgreSQL service
+      "sudo systemctl start postgresql",
+      "sudo systemctl enable postgresql",
+
+      # Create a database and user for the application
+      "sudo -u postgres psql -c \"CREATE DATABASE IF NOT EXISTS healthcheck_db;\"",
+      "sudo -u postgres psql -c \"CREATE USER IF NOT EXISTS '$(var.db_user}'@'localhost' IDENTIFIED BY '$(var.db_password)';\"",
+      "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON healthcheck_db.* TO '$(var.db_user)'@'localhost';\"",
+      # Create a group and user for the application
       "sudo groupadd csye6225",
       "sudo useradd -g csye6225 -s /usr/sbin/nologin csye6225",
+      # Create the directory for the application and set permissions
       "sudo mkdir -p /opt/csye6225",
       "sudo chown -R csye6225:csye6225 /opt/csye6225",
       "sudo chmod -R 750 /opt/csye6225",
@@ -82,8 +92,8 @@ build {
 
   # Copies the entire webapp directory to the instance
   provisioner "file" {
-    source      = "./webapp.zip" # Current directory 
-    destination = "/tmp/webapp.zip"
+    source      = "./target/health-check-api-0.0.1-SNAPSHOT.jar"
+    destination = "/tmp/health-check-api-0.0.1-SNAPSHOT.jar"
   }
 
   # Copy the systemd service file to the instance
