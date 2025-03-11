@@ -43,7 +43,7 @@ variable "db_pass" {
 
  variable "jar_file" {
   type    = string
-  default = "webapp.jar"
+  default = "/tmp/webapp.jar"
 }
 
 #build images for AWS and GCP
@@ -173,7 +173,14 @@ provisioner "file" {
       "sudo systemctl status csye6225.service || exit 1",
     ]
   }
+
+  # Add the manifest post-processor here
+  post-processor "manifest" {
+    output     = "./manifest.json"
+    strip_path = true
+  }
 }
+
 
 # #Moves the application jar file to the desired location.
 # provisioner "shell" {
