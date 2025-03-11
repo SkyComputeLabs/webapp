@@ -41,6 +41,11 @@ variable "db_pass" {
   default = "root"
 }
 
+ variable "jar_file" {
+  type    = string
+  default = "webapp.jar"
+}
+
 #build images for AWS and GCP
 source "amazon-ebs" "ubuntu" {
   ami_name      = "csye6225-${formatdate("YYYY-MM-DD_HH_mm_ss", timestamp())}"
@@ -108,13 +113,19 @@ build {
    ]
   }
 
+provisioner "file" {
+  source      = var.jar_file
+  destination = "/tmp/webapp.jar"
+}
+
+
   # Copies the entire webapp directory to the instance
-  provisioner "file" {
-    # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
-    source      = "webapp.jar"
-    destination = "/tmp/webapp.jar"
-    # generated   = true
-  }
+  # provisioner "file" {
+  #   # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
+  #   source      = "webapp.jar"
+  #   destination = "/tmp/webapp.jar"
+  #   # generated   = true
+  # }
 
   provisioner "shell"{
     inline = [
