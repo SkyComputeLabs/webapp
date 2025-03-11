@@ -124,7 +124,7 @@ build {
   }
 
   provisioner "file" {
-    source      = "webapp/src/main/resources/application.properties"
+    source      = "./src/main/resources/application.properties"
     destination = "/tmp/application.properties"
     # generated   = true
   }
