@@ -88,8 +88,8 @@ build {
 
       # Create a database and user for the application
       "sudo -u postgres psql -c \"CREATE DATABASE IF NOT EXISTS healthcheck_db;\"",
-      "sudo -u postgres psql -c \"CREATE USER '${var.db_user}' WITH PASSWORD '${var.db_pass}';\"",
-      "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON healthcheck_db.* TO '$(var.db_user)'@'localhost';\"",
+      "/bin/bash -c 'sudo -u postgres psql -c \"CREATE USER \\\"${DB_USER}\\\" WITH PASSWORD \\\"${DB_PASS}\\\";\"'",
+      "/bin/bash -c 'sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE healthcheck_db TO \\\"${DB_USER}\\\";\"'",
       # Create a group and user for the application
       "sudo groupadd csye6225",
       "sudo useradd -g csye6225 -s /usr/sbin/nologin csye6225",
@@ -97,15 +97,45 @@ build {
       "sudo mkdir -p /opt/csye6225",
       "sudo chown -R csye6225:csye6225 /opt/csye6225",
       "sudo chmod -R 750 /opt/csye6225",
-      "sudo sed -i 's/DB_USER/${ var.db_user }/g' /tmp/application.properties",
-      "sudo sed -i 's/DB_PASS/${ var.db_pass }/g' /tmp/application.properties",
+
+      # Replace placeholders in application.properties using environment variables
+      "/bin/bash -c 'sed -i \"s/DB_USER/${DB_USER}/g\" /tmp/application.properties'",
+      "/bin/bash -c 'sed -i \"s/DB_PASS/${DB_PASS}/g\" /tmp/application.properties'"
+    ]
+    environment_vars = [
+      "DB_USER=${PKR_VAR_db_user}",
+      "DB_PASS=${PKR_VAR_db_pass}",
     ]
   }
 
   # Copies the entire webapp directory to the instance
   provisioner "file" {
+    # source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
     source      = "../target/health-check-api-0.0.1-SNAPSHOT.jar"
     destination = "/tmp/health-check-api-0.0.1-SNAPSHOT.jar"
+  }
+
+  provisioner "shell"{
+    inline = [
+      "sudo mv /tmp/health-check-api-0.0.1-SNAPSHOT.jar /home/csye6225/",
+      "sudo chown csye6225:csye6225 /home/csye6225/health-check-api-0.0.1-SNAPSHOT.jar",
+    ]
+  }
+
+  provisioner "file" {
+    source      = "./application.properties"
+    destination = "/tmp/application.properties"
+  }
+
+  provisioner "shell"{
+    inline = [
+      "sudo mv /tmp/application.properties /home/csye6225/",
+      "sudo chown csye6225:csye6225 /home/csye6225/application.properties",
+    ]
+     environment_vars = [
+      "DB_USER=${PKR_VAR_db_user}",
+      "DB_PASS=${PKR_VAR_db_pass}"
+    ]
   }
 
   # Copy the systemd service file to the instance
@@ -117,14 +147,12 @@ build {
   # Unzip the application and configure it on the instance
   provisioner "shell" {
     inline = [
-      "set -x",
-      # Unzip webapp.zip into /opt/csye6225 directory
-      "sudo unzip /tmp/webapp.zip -d /opt/csye6225/ || exit 1",
+      # "set -x",
       # Set ownership of files to csye6225 user and group
-      "sudo chown -R csye6225:csye6225 /opt/csye6225/ || exit 1",
-      "sudo chmod +x /opt/csye6225/target/health-check-api-0.0.1-SNAPSHOT.jar || exit 1",
-      # Move systemd service file to /etc/systemd/system/
-      "sudo mv /tmp/csye6225.service /etc/systemd/system/ || exit 1",
+      # "sudo chown -R csye6225:csye6225 /opt/csye6225/ || exit 1",
+      # "sudo chmod +x /opt/csye6225/target/health-check-api-0.0.1-SNAPSHOT.jar || exit 1",
+      # # Move systemd service file to /etc/systemd/system/
+      "sudo mv /tmp/csye6225.service /etc/systemd/system/csye6225.service",
       # Reload systemd daemon and enable/start the service
       "sudo systemctl daemon-reload || exit 1",
       "sudo systemctl enable csye6225.service || exit 1",
