@@ -73,8 +73,8 @@ jobs:
         run: |
             cd webapp
             packer init .
-            packer validate -var "db_user=${{ secrets.DB_USER }}" -var "db_pass=${{ secrets.DB_PASS }}" .
-            packer build -var "db_user=${{ secrets.DB_USER }}" -var "db_pass=${{ secrets.DB_PASS }}" .
+            packer validate -var-file=variables.pkrvars.hcl .
+            packer build -var-file=variables.pkrvars.hcl .
         env:
           PACKER_LOG: 1
 
