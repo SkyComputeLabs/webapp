@@ -97,8 +97,8 @@ build {
       "sudo mkdir -p /opt/csye6225",
       "sudo chown -R csye6225:csye6225 /opt/csye6225",
       "sudo chmod -R 750 /opt/csye6225",
-      "sudo sed -i 's/DB_USER/${{ var.db_user }}/g' /tmp/application.properties",
-      "sudo sed -i 's/DB_PASS/${{ var.db_pass }}/g' /tmp/application.properties"
+      "sudo sed -i 's/DB_USER/${ var.db_user }/g' /tmp/application.properties",
+      "sudo sed -i 's/DB_PASS/${ var.db_pass }/g' /tmp/application.properties"
     ]
   }
 
