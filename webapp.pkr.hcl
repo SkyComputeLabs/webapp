@@ -43,7 +43,7 @@ variable "db_pass" {
 
  variable "jar_file" {
   type    = string
-  default = "./webapp.jar"
+  default = "/tmp/webapp.jar"
 }
 
 #build images for AWS and GCP
