@@ -5,7 +5,7 @@
 *.log
 
 # Build directories
-target/
+# target/
 build/
 
 # IDE-specific files
@@ -40,7 +40,7 @@ Thumbs.db
 HELP.md
 
 # Build artifacts
-*.jar
+# *.jar
 *.war
 
 # Python virtual environment
@@ -59,8 +59,8 @@ db.sqlite3-journal
 Postman Collections/
 
 # Keep src/main and src/test
-!**/src/main/**/target/
-!**/src/test/**/target/
+# !**/src/main/**/target/
+# !**/src/test/**/target/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
