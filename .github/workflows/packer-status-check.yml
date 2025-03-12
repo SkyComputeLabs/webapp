@@ -20,7 +20,9 @@ jobs:
         run: packer init .
 
       - name: Check Packer Formatting
-        run: packer fmt webapp.pkr.hcl
+        id: fmt
+        run: packer fmt -check .
 
       - name: Validate Packer Template
-        run: packer validate webapp.pkr.hcl
+        id: validate
+        run: packer validate .

@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'webapp/**'
 
 jobs:
   build-test:
@@ -22,7 +20,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          export_default_credentials: true
 
       - name: Set up GCP SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -36,36 +33,45 @@ jobs:
       - name: Authenticate with gcloud 
         run: gcloud auth activate-service-account --key-file="$HOME/gcp_dev_account.json"
 
-      - name: Set GOOGLE_APPLICATION_CREDENTIALS
-        run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Copy application.properties to /tmp/
-        run: |
-              sed -i 's/DB_USER/${{ secrets.DB_USER }}/g' webapp/src/main/resources/application.properties
-              sed -i 's/DB_PASS/${{ secrets.DB_PASS }}/g' webapp/src/main/resources/application.properties
-              cp webapp/src/main/resources/application.properties /tmp/application.properties
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # - name: Set GOOGLE_APPLICATION_CREDENTIALS
+      #   run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
+
+      # - name: Copy application.properties to /tmp/
+      #   run: |
+      #         sed -i 's/DB_USER/${{ secrets.DB_USER }}/g' webapp/src/main/resources/application.properties
+      #         sed -i 's/DB_PASS/${{ secrets.DB_PASS }}/g' webapp/src/main/resources/application.properties
+      #         cp webapp/src/main/resources/application.properties /tmp/application.properties
 
       - name: Build application artifacts
         run: cd webapp 
              mvn clean package -DskipTests
-             cp target/*.jar /tmp/webapp.jar
+             cp target/*.jar ../application.jar
         env:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
 
-      - name: Set up packer variables
-        run: |
-              echo "export PACKER_VAR_DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
-              echo "export PACKER_VAR_DB_PASS=${{ secrets.DB_PASS }}" >> $GITHUB_ENV
-              echo "export PACKER_VAR_gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_ENV
-              echo "export PACKER_VAR_aws_region=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
-              echo "PACKER_VAR_JAR_PATH=/tmp/webapp.jar" >> $GITHUB_ENV # New JAR_PATH variable
-              echo "PACKER_VAR_APP_PROPERTIES=/tmp/application.properties" >> $GITHUB_ENV
-              echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-              echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-              echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
-        shell: bash
+      # - name: Set up packer variables
+      #   run: |
+      #         echo "export PACKER_VAR_DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
+      #         echo "export PACKER_VAR_DB_PASS=${{ secrets.DB_PASS }}" >> $GITHUB_ENV
+      #         echo "export PACKER_VAR_gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_ENV
+      #         echo "export PACKER_VAR_aws_region=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
+      #         echo "PACKER_VAR_JAR_PATH=/tmp/health-check-api-0.0.1-SNAPSHOT.jar" >> $GITHUB_ENV # New JAR_PATH variable
+      #         echo "PACKER_VAR_APP_PROPERTIES=/tmp/application.properties" >> $GITHUB_ENV
+      #         echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+      #         echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+      #         echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
+      #   shell: bash
 
       - name: Install hashicorp/setup-packer
         uses: hashicorp/setup-packer@v2
@@ -74,18 +80,26 @@ jobs:
 
       - name: Run Packer to build the custom image
         run: |
-            cd webapp
-            packer init .
-            packer validate .
-            packer build .
-        env:
-            PKR_VAR_db_user: ${{ secrets.DB_USER }}
-            PKR_VAR_db_pass: ${{ secrets.DB_PASS }}
+          packer init .
+          packer validate .
+          packer build \
+            -var "db_user=${{ secrets.DB_USER }}" \
+            -var "db_pass=${{ secrets.DB_PASS }}" \
+            -var "gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var "aws_region=${{ secrets.AWS_REGION }}" \
+            .
 
+      - name: Retrieve AMI ID from manifest
+        run: |
+          AMI_ID=$(jq -r '.builds[] | select(.builder_type=="amazon-ebs") | .artifact_id' manifest.json | cut -d ":" -f2)
+          echo "AMI_ID=$AMI_ID"
+          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
 
-      - name: Retrieve AWS AMI ID
-        run: AMI_ID=$(aws ec2 describe-images --owners self --filters Name=name, Values=csye6225-*-webapp-image-* --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
-             echo "AMI_ID=$AMI_ID"
-             echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+      - name: Share AMI with Demo Account
+        run: |
+          aws ec2 modify-image-attribute \
+            --image-id ${{ env.AMI_ID }} \
+            --launch-permission "Add=[{UserId=${{ secrets.AWS_DEMO_ACCOUNT_ID }}}]"
+
 
       
