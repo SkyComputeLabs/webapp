@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'webapp/**'
 
 jobs:
   build-test:
@@ -35,6 +33,15 @@ jobs:
       - name: Authenticate with gcloud 
         run: gcloud auth activate-service-account --key-file="$HOME/gcp_dev_account.json"
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
       # - name: Set GOOGLE_APPLICATION_CREDENTIALS
       #   run: echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcp_dev_account.json" >> $GITHUB_ENV
 
@@ -44,14 +51,14 @@ jobs:
       #         sed -i 's/DB_PASS/${{ secrets.DB_PASS }}/g' webapp/src/main/resources/application.properties
       #         cp webapp/src/main/resources/application.properties /tmp/application.properties
 
-      # - name: Build application artifacts
-      #   run: cd webapp 
-      #        mvn clean package -DskipTests
-      #        cp target/*.jar /tmp/health-check-api-0.0.1-SNAPSHOT.jar
-      #   env:
-      #     DB_NAME: ${{ secrets.DB_NAME }}
-      #     DB_USER: ${{ secrets.DB_USER }}
-      #     DB_PASS: ${{ secrets.DB_PASS }}
+      - name: Build application artifacts
+        run: cd webapp 
+             mvn clean package -DskipTests
+             cp target/*.jar ../application.jar
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
 
       # - name: Set up packer variables
       #   run: |
@@ -73,25 +80,26 @@ jobs:
 
       - name: Run Packer to build the custom image
         run: |
-            cd webapp
-            packer init .
-            packer validate .
-            packer build .
-        # env:
-        #     PKR_VAR_db_user: ${{ secrets.DB_USER }}
-        #     PKR_VAR_db_pass: ${{ secrets.DB_PASS }}
-
-
-      # - name: Retrieve AWS AMI ID
-      #   run: AMI_ID=$(aws ec2 describe-images --owners self --filters Name=name, Values=csye6225-*-webapp-image-* --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' --output text)
-      #        echo "AMI_ID=$AMI_ID"
-      #        echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+          packer init .
+          packer validate .
+          packer build \
+            -var "db_user=${{ secrets.DB_USER }}" \
+            -var "db_pass=${{ secrets.DB_PASS }}" \
+            -var "gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var "aws_region=${{ secrets.AWS_REGION }}" \
+            .
 
       - name: Retrieve AMI ID from manifest
         run: |
-            AMI_ID=$(jq -r '.builds[-1].artifact_id' manifest.json | cut -d ":" -f2)
-            echo "AMI_ID=$AMI_ID"
-            echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+          AMI_ID=$(jq -r '.builds[] | select(.builder_type=="amazon-ebs") | .artifact_id' manifest.json | cut -d ":" -f2)
+          echo "AMI_ID=$AMI_ID"
+          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+
+      - name: Share AMI with Demo Account
+        run: |
+          aws ec2 modify-image-attribute \
+            --image-id ${{ env.AMI_ID }} \
+            --launch-permission "Add=[{UserId=${{ secrets.AWS_DEMO_ACCOUNT_ID }}}]"
 
 
       
