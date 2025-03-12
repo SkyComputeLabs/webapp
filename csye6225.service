@@ -1,0 +1,18 @@
+[Unit]
+Description=CSYE 6225 Health Check API
+After=network.target
+
+[Service]
+Type=simple
+User=csye6225
+Group=csye6225
+WorkingDirectory=/opt/csye6225
+ExecStart=/usr/bin/java -jar /opt/csye6225/application.jar
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=csye6225
+
+[Install]
+WantedBy=multi-user.target
