@@ -54,7 +54,7 @@ jobs:
       - name: Build application artifacts
         run: cd webapp 
              mvn clean package -DskipTests
-             cp target/*.jar ../application.jar
+             cp target/*.jar ../health-check-api-0.0.1-SNAPSHOT.jar
         env:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
