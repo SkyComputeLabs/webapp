@@ -139,14 +139,16 @@ build {
       "DB_USER=${var.db_user}",
       "DB_PASS=${var.db_pass}"
     ]
+
+    # Manifest Post-Processor
+    post-processor "manifest" {
+      output     = "./manifest.json"
+      strip_path = true
+  }
   }
 }
 
-# Manifest Post-Processor
-post-processor "manifest" {
-  output     = "./manifest.json"
-  strip_path = true
-}
+
 
 
 
