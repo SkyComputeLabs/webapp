@@ -294,11 +294,6 @@ build {
 
 
 
-
-
-
-
-
 # packer {
 #   required_plugins {
 #     amazon = {
