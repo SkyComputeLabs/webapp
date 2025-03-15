@@ -133,7 +133,7 @@ build {
 
   # Upload the application jar file to the instance
   provisioner "file" {
-    source      = "target/health-check-api-0.0.1-SNAPSHOT.jar",
+    source      = "target/health-check-api-0.0.1-SNAPSHOT.jar"
     destination = "/tmp/application.jar"
   }
 
