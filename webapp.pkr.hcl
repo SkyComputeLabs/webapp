@@ -86,6 +86,11 @@ build {
     "source.googlecompute.ubuntu"
   ]
 
+  # Build the JAR first
+  provisioner "shell-local" {
+    command = "mvn clean package"
+  }
+
   # Provisioner to install dependencies
   provisioner "shell" {
     environment_vars = [
@@ -93,6 +98,8 @@ build {
       "DB_PASS=${var.db_pass}"
     ]
     inline = [
+      "set -euxo pipefail",
+      "cloud-init status --wait",
       "export DEBIAN_FRONTEND=noninteractive",
       "sudo apt-get update -y && sudo apt-get upgrade -y",
       "sudo apt-get install -y software-properties-common", # Required for add-apt-repository
@@ -107,9 +114,9 @@ build {
       "sudo systemctl enable postgresql",
 
       #Create the database and user for the application
-      "sudo -u postgres psql -c \"CREATE DATABASE healthcheck_db;\"",
-      "sudo -u postgres psql -c \"CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';\"",
-      "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE healthcheck_db TO $DB_USER;\"",
+      "sudo -i -u postgres psql -c \"CREATE DATABASE healthcheck_db;\"",
+      "sudo -i -u postgres psql -c \"CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';\"",
+      "sudo -i -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE healthcheck_db TO $DB_USER;\"",
 
       #Create a group and user for the application
       "sudo groupadd csye6225",
@@ -126,7 +133,7 @@ build {
 
   # Upload the application jar file to the instance
   provisioner "file" {
-    source      = "target/health-check-api-0.0.1-SNAPSHOT.jar"
+    source      = "target/health-check-api-0.0.1-SNAPSHOT.jar",
     destination = "/tmp/application.jar"
   }
 
@@ -154,6 +161,7 @@ build {
       "sudo systemctl daemon-reload",
       "sudo systemctl enable csye6225.service",
       "sudo systemctl start csye6225.service",
+      "sudo systemctl status csye6225.service"
     ]
   }
 }
