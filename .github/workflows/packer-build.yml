@@ -59,6 +59,8 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_HOST: ${{ secrets.DB_HOST }}
 
       # - name: Set up packer variables
       #   run: |
@@ -89,14 +91,4 @@ jobs:
             -var "aws_region=${{ secrets.AWS_REGION }}" \
             .
 
-      - name: Retrieve AMI ID from manifest
-        run: |
-          AMI_ID=$(jq -r '.builds[] | select(.builder_type=="amazon-ebs") | .artifact_id' manifest.json | cut -d ":" -f2)
-          echo "AMI_ID=$AMI_ID"
-          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
-
-      - name: Share AMI with Demo Account
-        run: |
-          aws ec2 modify-image-attribute \
-            --image-id ${{ env.AMI_ID }} \
-            --launch-permission "Add=[{UserId=${{ secrets.AWS_DEMO_ACCOUNT_ID }}}]"
+   
