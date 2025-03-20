@@ -11,6 +11,9 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.SdkClientException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -44,5 +47,42 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler({ DataAccessException.class, SQLException.class, RuntimeException.class })
     public ResponseEntity<Void> handleDatabaseFailure(Exception ex) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+    }
+	
+	@ExceptionHandler(AmazonS3Exception.class)
+    public ResponseEntity<Map<String, String>> handleAmazonS3Exception(AmazonS3Exception ex) {
+        String message = "S3 Error: " + ex.getMessage();
+        if(ex.getExtendedRequestId() != null) {
+            message += " (Extended Request ID: " + ex.getExtendedRequestId() + ")";
+        }
+        if(ex.getCloudFrontId() != null) {
+            message += " (CloudFront ID: " + ex.getCloudFrontId() + ")";
+        }
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "S3 Service Error", message);
+    }
+
+    @ExceptionHandler(AmazonS3Exception.class)
+    public ResponseEntity<Map<String, String>> handleAmazonServiceException(AmazonServiceException ex) {
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, 
+                                "AWS Service Error", 
+                                ex.getErrorMessage());
+    }
+
+    @ExceptionHandler(SdkClientException.class)
+    public ResponseEntity<Map<String, String>> handleSdkClientException(SdkClientException ex) {
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+                                "AWS Client Error",
+                                "Failed to communicate with AWS services: " + ex.getMessage());
+    }
+
+    // Utility method for consistent error responses
+    private ResponseEntity<Map<String, String>> buildErrorResponse(
+            HttpStatus status, String error, String message) {
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("status", String.valueOf(status.value()));
+        response.put("error", error);
+        response.put("message", message);
+        return new ResponseEntity<>(response, status);
     }
 }
