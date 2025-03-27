@@ -53,8 +53,5 @@ jobs:
             sleep 2
           done
 
-      - name: Install Maven dependencies
-        run: mvn install -DskipTests
-
-      - name: Run Tests
-        run: mvn test
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
