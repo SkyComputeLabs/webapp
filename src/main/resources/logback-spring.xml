@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender for local development -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appender to write logs to  -->
+    <springProfile name="default">
+        <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+            <file>/opt/csye6225/application.log</file>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <pattern>
+                    {
+                    "timestamp": "%date{yyyy-MM-dd'T'HH:mm:ss.SSSZ}",
+                    "level": "%level",
+                    "message": "%message",
+                    "logger_name": "%logger",
+                    "exception": "%ex"
+                    }
+                </pattern>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+
+<!-- File appender to write logs to  -->
+    <springProfile name="ci">
+        <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+            <file>/tmp/application.log</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
+    
+</configuration>

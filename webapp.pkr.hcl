@@ -34,22 +34,22 @@ variable "aws_source_ami" {
 
 variable "DB_USER" {
   type    = string
-  default = "root"
+  default = "postgres"
 }
 
 variable "DB_PASS" {
   type    = string
-  default = "root"
+  default = "postgres"
 }
 
 variable "DB_NAME" {
   type    = string
-  default = "healthcheck_db"
+  default = "webapp"
 }
 
 variable "DB_HOST" {
   type    = string
-  default = "postgres-db-instance.c5ukym0ay3rj.us-east-2.rds.amazonaws.com"
+  default = "postgres-instance.c5ukym0ay3rj.us-east-2.rds.amazonaws.com"
 }
 
 variable "DB_PORT" {
@@ -69,7 +69,17 @@ variable "AWS_REGION" {
 
 variable "S3_BUCKET_NAME" {
   type    = string
-  default = "first-s3-bucket"
+  default = "first-s3-bucket-6225"
+}
+
+variable "SERVER_PORT" {
+  type    = string
+  default = "8080"
+}
+
+variable "SERVER_ADDRESS" {
+  type    = string
+  default = "0.0.0.0"
 }
 
 # Build images for AWS and GCP
@@ -131,9 +141,53 @@ build {
       # Add PostgreSQL repository and key
       # "sudo apt-get install -y wget ca-certificates",                                                                                      # Install wget and certificates
       # "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null", # Use tee to output to file
-      # "sudo apt-get update -y",
+
       "sudo apt-get install -y openjdk-17-jdk maven postgresql-client", # Install Java, Maven, and PostgreSQL client
 
+      # Install CloudWatch Agent
+      "sudo apt-get install -y wget",
+      "wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb",
+      "sudo dpkg -i -E ./amazon-cloudwatch-agent.deb",
+      "rm amazon-cloudwatch-agent.deb",
+      "sudo apt-get install -y jq",
+
+      #"sudo apt-get install -y amazon-cloudwatch-agent",
+    ]
+  }
+
+  # Upload cloudwatch-config.json using file provisioner
+  provisioner "file" {
+    source      = "cloudwatch-agent-config.json"      # Path to your local file
+    destination = "/tmp/cloudwatch-agent-config.json" # Temporary location on the instance
+  }
+
+  provisioner "shell" {
+    inline = [
+      # Create config directory
+      "sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc/",
+      "sudo chown root:root /opt/aws/amazon-cloudwatch-agent/etc/",
+      "sudo chmod 750 /opt/aws/amazon-cloudwatch-agent/etc/",
+
+      # Move the uploaded configuration file to its final location
+      "sudo cp /tmp/cloudwatch-agent-config.json /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent-config.json",
+
+      # Set permissions
+      # "sudo chown root:root /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+      "sudo chmod 644 /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent-config.json",
+
+      # Validate JSON syntax with error handling
+      "sudo cat /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent-config.json | jq . || (echo 'Invalid JSON!'; exit 1)",
+
+      # start CloudWatch Agent
+      
+      "sudo systemctl enable amazon-cloudwatch-agent",
+      "sudo systemctl start amazon-cloudwatch-agent"
+    ]
+  }
+
+
+  provisioner "shell" {
+    inline = [
       #Ensure that the PostgreSQL service is started and enabled
       # "sudo systemctl start postgresql",
       # "sudo systemctl enable postgresql",
@@ -151,24 +205,33 @@ build {
       "sudo mkdir -p /opt/csye6225",
 
       # Set ownership and permissions
-      "sudo chown -R csye6225:csye6225 /opt/csye6225",
+      "sudo chown -R ubuntu:ubuntu /opt/csye6225",
       "sudo chmod -R 750 /opt/csye6225",
+
+      # Create database if it doesn't exist
+      # "psql -h ${var.DB_HOST} -U ${var.DB_USER} -d postgres -c 'CREATE DATABASE IF NOT EXISTS ${var.DB_NAME};'",
+      # "psql -h ${var.DB_HOST} -U ${var.DB_USER} -d ${var.DB_NAME} -c 'CREATE ROLE ${var.DB_USER} WITH PASSWORD ${var.DB_PASS}; GRANT ALL PRIVILEGES ON DATABASE ${var.DB_NAME} TO ${var.DB_USER};'",
 
       # Export environment variables for .env file creation
       "export DB_HOST=${var.DB_HOST}",
       "export DB_PORT=${var.DB_PORT}",
       "export DB_NAME=${var.DB_NAME}",
+      "export AWS_REGION=${var.AWS_REGION}",
+      "export S3_BUCKET_NAME=${var.S3_BUCKET_NAME}",
+      "export DB_USER=${var.DB_USER}",
+      "export DB_PASS=${var.DB_PASS}",
 
       # Create .env file
       "sudo touch /opt/csye6225/.env",
       "echo 'DB_URL=jdbc:postgresql://${var.DB_HOST}:${var.DB_PORT}/${var.DB_NAME}' | sudo tee -a /opt/csye6225/.env",
-      "echo 'DB_USERNAME=root' | sudo tee -a /opt/csye6225/.env",
-      "echo 'DB_PASSWORD=root' | sudo tee -a /opt/csye6225/.env",
+      "echo 'DB_USERNAME=${var.DB_USER}' | sudo tee -a /opt/csye6225/.env",
+      "echo 'DB_PASSWORD=${var.DB_PASS}' | sudo tee -a /opt/csye6225/.env",
+      "echo 'AWS_REGION=${var.AWS_REGION}' | sudo tee -a /opt/csye6225/.env",
+      "echo 'S3_BUCKET_NAME=${var.S3_BUCKET_NAME}' | sudo tee -a /opt/csye6225/.env",
 
       # Set ownership and permissions for .env file
-      "sudo chown csye6225:csye6225 /opt/csye6225/.env",
+      "sudo chown ubuntu:ubuntu /opt/csye6225/.env",
       "sudo chmod 600 /opt/csye6225/.env",
-
     ]
   }
 
@@ -181,8 +244,11 @@ build {
       "export DB_PASSWORD=${var.DB_PASS}",
       "export AWS_REGION=${var.AWS_REGION}",
       "export S3_BUCKET_NAME=${var.S3_BUCKET_NAME}",
+      "export SERVER_ADDRESS=${var.SERVER_ADDRESS}",
+      "export SERVER_PORT=${var.SERVER_PORT}",
       "sudo touch /opt/csye6225/application.properties",
-      "echo 'server.port=8080' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'server.port=${var.SERVER_PORT}' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'server.address=${var.SERVER_ADDRESS}' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'spring.datasource.url=jdbc:postgresql://${var.DB_HOST}:${var.DB_PORT}/${var.DB_NAME}' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'spring.datasource.username=${var.DB_USER}' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'spring.datasource.password=${var.DB_PASS}' | sudo tee -a /opt/csye6225/application.properties",
@@ -200,6 +266,15 @@ build {
       "echo 'spring.jpa.show-sql=false' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'aws.region=${var.AWS_REGION}' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'aws.s3.bucket-name=${var.S3_BUCKET_NAME}' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'management.metrics.export.statsd.enabled=true' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'management.metrics.export.statsd.host=localhost' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'management.metrics.export.statsd.port=8125' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'management.metrics.export.statsd.step=10s' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'management.metrics.export.cloudwatch.namespace=MyApplication' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'management.metrics.export.cloudwatch.enabled=true' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'management.metrics.export.cloudwatch.batch-size=20' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'logging.file.name=/opt/csye6225/application.log' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'logging.level.root=INFO' | sudo tee -a /opt/csye6225/application.properties",
       "sudo chown csye6225:csye6225 /opt/csye6225/application.properties",
       "sudo chmod 600 /opt/csye6225/application.properties"
     ]
@@ -277,6 +352,7 @@ build {
     ]
   }
 
+
   #   provisioner "shell" {
   #     inline = [
   #       "echo 'DB_NAME=${var.DB_NAME}' | sudo tee -a /etc/environment",
@@ -291,5 +367,6 @@ build {
   #       "echo 'AWS_REGION=${var.AWS_REGION}' | sudo tee -a /etc/environment"
   #     ]
   #   }
+
 }
 

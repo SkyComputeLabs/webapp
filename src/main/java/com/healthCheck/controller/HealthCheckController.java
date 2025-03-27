@@ -1,6 +1,7 @@
 package com.healthCheck.controller;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,44 +20,67 @@ import com.healthCheck.exception.HealthCheckException;
 import com.healthCheck.exception.NotFoundException;
 import com.healthCheck.service.HealthCheckService;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 @RestController
 @RequestMapping("/healthz")
 public class HealthCheckController {
 
-	HttpHeaders headers = new HttpHeaders();
+	private final MeterRegistry meterRegistry;
+    private final HealthCheckService healthCheckService;
+	private final HttpHeaders headers = new HttpHeaders();
 
 	@Autowired
-	private final HealthCheckService healthCheckService;
-
-	public HealthCheckController(HealthCheckService healthCheckService) {
+	public HealthCheckController(HealthCheckService healthCheckService, MeterRegistry meterRegistry) {
 		this.healthCheckService = healthCheckService;
+		this.meterRegistry = meterRegistry;
+
+		headers.setCacheControl("no-cache, no-store, must-revalidate");
+        headers.setPragma("no-cache");
+        headers.set("X-Content-Type-Options", "nosniff");
 	}
+	//private final HealthCheckService healthCheckService;
+
+	// public HealthCheckController(HealthCheckService healthCheckService) {
+	// 	this.healthCheckService = healthCheckService;
+	// }
 
 	@GetMapping
 	public ResponseEntity<Void> checkHealth(@RequestBody(required = false) String body,
 			@RequestParam Map<String, String> queryParams) {
 
-		headers.setCacheControl("no-cache, no-store, must-revalidate");
-		headers.setPragma("no-cache");
-	    headers.set("X-Content-Type-Options", "nosniff");
-	    
-		if (body != null && !body.isEmpty()) {
-			return ResponseEntity.badRequest().headers(headers).build();
-		}
-		if (!queryParams.isEmpty()) {
-			return ResponseEntity.badRequest().headers(headers).build();
-		}
+		long startTime = System.currentTimeMillis();
 
-		try {
+		// Increment the counter for total calls to this endpoint
+    	meterRegistry.counter("api.healthz.get.calls").increment();
+
+		try{
+			if (body != null && !body.isEmpty() || !queryParams.isEmpty()) {
+            	meterRegistry.counter("api.healthz.get.bad_request").increment();
+            	return ResponseEntity.badRequest().headers(headers).build();
+        	}
+        	// if (!queryParams.isEmpty()) {
+            // 	meterRegistry.counter("api.healthz.get.bad_request").increment();
+            // 	return ResponseEntity.badRequest().headers(headers).build();
+        	// }
+
 			healthCheckService.recordHealthCheck();
+			meterRegistry.counter("api.healthz.get.success").increment();
 			return ResponseEntity.ok().headers(headers).build();
 		} catch (HealthCheckException e) {
+			meterRegistry.counter("api.healthz.get.service_unavailable").increment();
 			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(headers).build();
 		} catch (NotFoundException e) {
+			 meterRegistry.counter("api.healthz.get.not_found").increment();
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).headers(headers).build();
 		} catch (RuntimeException e) {  
+			meterRegistry.counter("api.healthz.get.service_unavailable").increment();
 			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(headers).build();
-	    }
+	    } finally {
+			// Record the latency of the request
+        	long duration = System.currentTimeMillis() - startTime;
+        	meterRegistry.timer("api.healthz.get.latency").record(duration, TimeUnit.MILLISECONDS);
+		}
 
 	}
 
@@ -64,18 +88,14 @@ public class HealthCheckController {
 			RequestMethod.HEAD, RequestMethod.OPTIONS })
 	public ResponseEntity<String> methodNotAllowed() {
 
-		headers.setCacheControl("no-cache, no-store, must-revalidate");
-		headers.setPragma("no-cache");
-	    headers.set("X-Content-Type-Options", "nosniff");
+		meterRegistry.counter("api.healthz.invalid_method.calls").increment();
 		return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).headers(headers).build();
 	}
 
 	@RequestMapping(value = "/**", method = { RequestMethod.GET })
 	public ResponseEntity<String> handleInvalidEndpoint() {
-		headers.setCacheControl("no-cache, no-store, must-revalidate");
-		headers.setPragma("no-cache");
-	    headers.set("X-Content-Type-Options", "nosniff");
-	    
+
+	    meterRegistry.counter("api.healthz.invalid_endpoint.calls").increment();
 		return ResponseEntity.badRequest().headers(headers).build();
 	}
 

@@ -1,6 +1,7 @@
 package com.healthCheck.controller;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -20,40 +21,63 @@ import com.healthCheck.exception.NotFoundException;
 import com.healthCheck.model.File;
 import com.healthCheck.service.FileService;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 @RestController
 @RequestMapping("/v1/file")
 public class FileController {
 	
+    private final MeterRegistry meterRegistry;
+    private final FileService fileService;
 	private final HttpHeaders headers = new HttpHeaders();
 
 	@Autowired
-    private FileService fileService;
-	
-	 public FileController() {
-	        headers.setCacheControl("no-cache, no-store, must-revalidate");
-	        headers.setPragma("no-cache");
-	        headers.set("X-Content-Type-Options", "nosniff");
-	    }
+	public FileController(FileService fileService, MeterRegistry meterRegistry) {
+        this.fileService = fileService;
+        this.meterRegistry = meterRegistry;
+
+	    headers.setCacheControl("no-cache, no-store, must-revalidate");
+	    headers.setPragma("no-cache");
+	    headers.set("X-Content-Type-Options", "nosniff");
+	}
 
 	 //valid endpoints
 	 
     @PostMapping
     public ResponseEntity<File> uploadFile(@RequestParam("profilePic") MultipartFile profilePic) {
+        long startTime = System.currentTimeMillis();
+
         try {
+            meterRegistry.counter("api.file.upload.calls").increment();
+
             File uploadedFile = fileService.uploadFile(profilePic);
             return ResponseEntity.status(HttpStatus.CREATED).headers(headers).body(uploadedFile);
         } catch (IOException e) {
+            meterRegistry.counter("api.file.upload.errors").increment();
             return ResponseEntity.badRequest().headers(headers).build();
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            meterRegistry.timer("api.file.upload.latency")
+                        .record(duration, TimeUnit.MILLISECONDS);
         }
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<File> getFile(@PathVariable String id) {
+        long startTime = System.currentTimeMillis();
+
         try {
+            meterRegistry.counter("api.file.get.calls").increment();
+
             File file = fileService.getFile(id);
             return ResponseEntity.ok().headers(headers).body(file);
         } catch (NotFoundException e) {
+            meterRegistry.counter("api.file.get.errors").increment();
             return ResponseEntity.status(HttpStatus.NOT_FOUND).headers(headers).build();
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            meterRegistry.timer("api.file.get.latency")
+                        .record(duration, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -63,35 +87,46 @@ public class FileController {
 //    	if (!isAuthenticated()) {
 //    		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 //    	}
-       
+        long startTime = System.currentTimeMillis();
     	
     	try {
+            meterRegistry.counter("api.file.delete.calls").increment();
+
             fileService.deleteFile(id);
             return ResponseEntity.noContent().headers(headers).build();
         } catch (NotFoundException e) {
+            meterRegistry.counter("api.file.delete.errors").increment();
             return ResponseEntity.status(HttpStatus.NOT_FOUND).headers(headers).build();
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            meterRegistry.timer("api.file.delete.latency")
+                        .record(duration, TimeUnit.MILLISECONDS);
         }
     }
     
  // Invalid endpoints with no parameters
     @GetMapping
     public ResponseEntity<Void> getFileWithoutId() {
+        meterRegistry.counter("api.file.invalid_get.calls").increment();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(headers).build();
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteFileWithoutId() {
+        meterRegistry.counter("api.file.invalid_delete.calls").increment();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(headers).build();
     }
 
     @RequestMapping(method = { RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.HEAD, RequestMethod.OPTIONS })
     public ResponseEntity<Void> methodNotAllowed() {
+        meterRegistry.counter("api.file.invalid_method.calls").increment();
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).headers(headers).build();
     }
     
  // Handle invalid methods for /v1/file/{id}
-    @RequestMapping(value = "/{id}", method = { RequestMethod.PUT, RequestMethod.OPTIONS, RequestMethod.PATCH, RequestMethod.POST })
+    @RequestMapping(value = "/{id}", method = { RequestMethod.PUT, RequestMethod.OPTIONS, RequestMethod.PATCH, RequestMethod.POST, RequestMethod.HEAD })
     public ResponseEntity<Void> methodNotAllowedWithId() {
+        meterRegistry.counter("api.file.invalid_method.calls").increment();
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).headers(headers).build();
     }
 }

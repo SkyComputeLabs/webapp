@@ -12,10 +12,11 @@ public class AwsConfig {
 
 	@Bean
 	public AmazonS3 amazonS3() {
-		String region = System.getenv("AWS_REGION");
-		if (region == null || region.isEmpty()) {
-			throw new IllegalStateException("AWS_REGION environment variable is not set");
-		}
+		String region = "us-east-2";
+		//String region = System.getenv("AWS_REGION");
+		// if (region == null || region.isEmpty()) {
+		// 	throw new IllegalStateException("AWS_REGION environment variable is not set");
+		// }
 		return AmazonS3ClientBuilder.standard().withRegion(region)
 				.withCredentials(new DefaultAWSCredentialsProviderChain()).build();
 	}
