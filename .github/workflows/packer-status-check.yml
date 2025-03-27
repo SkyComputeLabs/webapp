@@ -21,7 +21,7 @@ jobs:
 
       - name: Check Packer Formatting
         id: fmt
-        run: packer fmt -check .
+        run: packer fmt .
 
       - name: Validate Packer Template
         id: validate

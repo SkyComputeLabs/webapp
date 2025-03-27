@@ -179,7 +179,7 @@ build {
       "sudo cat /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent-config.json | jq . || (echo 'Invalid JSON!'; exit 1)",
 
       # start CloudWatch Agent
-      
+
       "sudo systemctl enable amazon-cloudwatch-agent",
       "sudo systemctl start amazon-cloudwatch-agent"
     ]
