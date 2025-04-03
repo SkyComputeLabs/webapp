@@ -369,5 +369,10 @@ build {
   #       "echo 'AWS_REGION=${var.AWS_REGION}' | sudo tee -a /etc/environment"
   #     ]
   #   }
+}
 
 }
+
+#123
+
+
