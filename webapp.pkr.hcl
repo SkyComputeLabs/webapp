@@ -155,6 +155,7 @@ build {
     ]
   }
 
+
   # Upload cloudwatch-config.json using file provisioner
   provisioner "file" {
     source      = "cloudwatch-agent-config.json"      # Path to your local file
@@ -176,12 +177,12 @@ build {
       "sudo chmod 644 /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent-config.json",
 
       # Validate JSON syntax with error handling
-      "sudo cat /opt/aws/amazon-cloudwatch-agent/etc/cloudwatch-agent-config.json | jq . || (echo 'Invalid JSON!'; exit 1)",
+      "sudo cat /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json | jq . || (echo 'Invalid JSON!'; exit 1)",
 
       # start CloudWatch Agent
 
-      "sudo systemctl enable amazon-cloudwatch-agent",
-      "sudo systemctl start amazon-cloudwatch-agent"
+      # "sudo systemctl enable amazon-cloudwatch-agent",
+      # "sudo systemctl start amazon-cloudwatch-agent"
     ]
   }
 
@@ -273,6 +274,7 @@ build {
       "echo 'management.metrics.export.cloudwatch.namespace=MyApplication' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'management.metrics.export.cloudwatch.enabled=true' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'management.metrics.export.cloudwatch.batch-size=20' | sudo tee -a /opt/csye6225/application.properties",
+      "echo 'management.metrics.export.cloudwatch.step=1m' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'logging.file.name=/opt/csye6225/application.log' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'logging.level.root=INFO' | sudo tee -a /opt/csye6225/application.properties",
       "sudo chown csye6225:csye6225 /opt/csye6225/application.properties",
