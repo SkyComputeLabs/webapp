@@ -43,5 +43,17 @@
             <appender-ref ref="FILE"/>
         </root>
     </springProfile>
-    
+
+<!-- File appender for production profile -->
+<springProfile name="prod">
+        <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+            <file>/opt/csye6225/application.log</file>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile> 
 </configuration>

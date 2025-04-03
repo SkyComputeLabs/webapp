@@ -63,6 +63,4 @@ public class File {
 	public void setUploadDate(OffsetDateTime uploadDate) {
 		this.uploadDate = uploadDate;
 	}
-	
-	
 }

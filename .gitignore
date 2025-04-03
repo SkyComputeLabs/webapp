@@ -67,3 +67,6 @@ Postman Collections/
 # Environment variables
 .env
 
+ec2_ubuntu.pem
+
+

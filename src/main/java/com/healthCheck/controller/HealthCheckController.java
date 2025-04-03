@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 @RequestMapping("/healthz")
 public class HealthCheckController {
 
+	private static final Logger logger = LoggerFactory.getLogger(HealthCheckController.class);
 	private final MeterRegistry meterRegistry;
     private final HealthCheckService healthCheckService;
 	private final HttpHeaders headers = new HttpHeaders();
@@ -49,6 +52,8 @@ public class HealthCheckController {
 	public ResponseEntity<Void> checkHealth(@RequestBody(required = false) String body,
 			@RequestParam Map<String, String> queryParams) {
 
+		logger.info("Received health check request with body: {} and queryParams: {}", body, queryParams);
+		
 		long startTime = System.currentTimeMillis();
 
 		// Increment the counter for total calls to this endpoint
@@ -56,6 +61,8 @@ public class HealthCheckController {
 
 		try{
 			if (body != null && !body.isEmpty() || !queryParams.isEmpty()) {
+				logger.warn("Bad request received for health check");
+				
             	meterRegistry.counter("api.healthz.get.bad_request").increment();
             	return ResponseEntity.badRequest().headers(headers).build();
         	}
@@ -68,12 +75,18 @@ public class HealthCheckController {
 			meterRegistry.counter("api.healthz.get.success").increment();
 			return ResponseEntity.ok().headers(headers).build();
 		} catch (HealthCheckException e) {
+			logger.error("Health check failed due to service unavailability", e);
+			
 			meterRegistry.counter("api.healthz.get.service_unavailable").increment();
 			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(headers).build();
 		} catch (NotFoundException e) {
+			logger.error("Health check service not available", e);
+			
 			 meterRegistry.counter("api.healthz.get.not_found").increment();
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).headers(headers).build();
 		} catch (RuntimeException e) {  
+			logger.error("Unexpected error occurred during health check", e);
+			
 			meterRegistry.counter("api.healthz.get.service_unavailable").increment();
 			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(headers).build();
 	    } finally {
@@ -87,16 +100,18 @@ public class HealthCheckController {
 	@RequestMapping(method = { RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.PATCH,
 			RequestMethod.HEAD, RequestMethod.OPTIONS })
 	public ResponseEntity<String> methodNotAllowed() {
-
+		logger.warn("Invalid HTTP method called on /healthz endpoint");
 		meterRegistry.counter("api.healthz.invalid_method.calls").increment();
 		return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).headers(headers).build();
 	}
 
 	@RequestMapping(value = "/**", method = { RequestMethod.GET })
 	public ResponseEntity<String> handleInvalidEndpoint() {
-
+		logger.warn("Invalid endpoint accessed under /healthz");
 	    meterRegistry.counter("api.healthz.invalid_endpoint.calls").increment();
 		return ResponseEntity.badRequest().headers(headers).build();
 	}
 
 }
+
+

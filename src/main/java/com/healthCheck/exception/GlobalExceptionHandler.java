@@ -4,6 +4,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+	private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+	
     private final MeterRegistry meterRegistry;
 
     public GlobalExceptionHandler(MeterRegistry meterRegistry) {
@@ -28,6 +32,8 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
 	public ResponseEntity<Map<String, String>> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
+		logger.error("Method not allowed exception occurred", ex);
+		
 		Counter.builder("api.errors")
               .tag("exception", "MethodNotAllowed")
               .register(meterRegistry)
@@ -40,6 +46,8 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(NotFoundException.class)
 	public ResponseEntity<Map<String, String>> handleBadRequest(NotFoundException ex) {
+		logger.error("Not found exception occurred", ex);
+		
 		Counter.builder("api.errors")
               .tag("exception", "NotFound")
               .register(meterRegistry)
@@ -52,6 +60,8 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(HealthCheckException.class)
 	public ResponseEntity<Map<String, String>> handleHealthCheckException(HealthCheckException ex) {
+		 logger.error("Health check exception occurred", ex);
+		
 		Counter.builder("api.errors")
               .tag("exception", "HealthCheckFailure")
               .register(meterRegistry)
@@ -64,7 +74,9 @@ public class GlobalExceptionHandler {
 	
 	@ExceptionHandler({ DataAccessException.class, SQLException.class, RuntimeException.class })
     public ResponseEntity<Void> handleDatabaseFailure(Exception ex) {
-        String errorType = ex instanceof SQLException ? "DatabaseConnection" :
+		logger.error("Database failure occurred", ex);
+		
+		String errorType = ex instanceof SQLException ? "DatabaseConnection" :
                           ex instanceof DataAccessException ? "DataAccess" : "Runtime";
         
         Counter.builder("api.errors")
@@ -74,22 +86,12 @@ public class GlobalExceptionHandler {
         
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
-	
-	// @ExceptionHandler(AmazonS3Exception.class)
-    // public ResponseEntity<Map<String, String>> handleAmazonS3Exception(AmazonS3Exception ex) {
-    //     String message = "S3 Error: " + ex.getMessage();
-    //     if(ex.getExtendedRequestId() != null) {
-    //         message += " (Extended Request ID: " + ex.getExtendedRequestId() + ")";
-    //     }
-    //     if(ex.getCloudFrontId() != null) {
-    //         message += " (CloudFront ID: " + ex.getCloudFrontId() + ")";
-    //     }
-    //     return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "S3 Service Error", message);
-    // }
 
     @ExceptionHandler({AmazonS3Exception.class, AmazonServiceException.class})
     public ResponseEntity<Map<String, String>> handleAmazonServiceException(AmazonServiceException ex) {
-        Counter.builder("api.errors")
+    	logger.error("Amazon service exception occurred", ex);
+    	
+    	Counter.builder("api.errors")
               .tag("exception", "AmazonService")
               .register(meterRegistry)
               .increment();
@@ -101,7 +103,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SdkClientException.class)
     public ResponseEntity<Map<String, String>> handleSdkClientException(SdkClientException ex) {
-        Counter.builder("api.errors")
+    	logger.error("AWS SDK client exception occurred", ex);
+    	
+    	Counter.builder("api.errors")
               .tag("exception", "AWSClient")
               .register(meterRegistry)
               .increment();
