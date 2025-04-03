@@ -86,18 +86,6 @@ public class GlobalExceptionHandler {
         
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
-	
-	// @ExceptionHandler(AmazonS3Exception.class)
-    // public ResponseEntity<Map<String, String>> handleAmazonS3Exception(AmazonS3Exception ex) {
-    //     String message = "S3 Error: " + ex.getMessage();
-    //     if(ex.getExtendedRequestId() != null) {
-    //         message += " (Extended Request ID: " + ex.getExtendedRequestId() + ")";
-    //     }
-    //     if(ex.getCloudFrontId() != null) {
-    //         message += " (CloudFront ID: " + ex.getCloudFrontId() + ")";
-    //     }
-    //     return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "S3 Service Error", message);
-    // }
 
     @ExceptionHandler({AmazonS3Exception.class, AmazonServiceException.class})
     public ResponseEntity<Map<String, String>> handleAmazonServiceException(AmazonServiceException ex) {

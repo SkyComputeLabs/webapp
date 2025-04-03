@@ -34,6 +34,4 @@ public class HealthCheck {
 	public void setDatetime(OffsetDateTime datetime) {
 		this.datetime = datetime;
 	}
-	
-	
 }

@@ -37,4 +37,3 @@ public class AmazonS3Exception extends AmazonServiceException {
                (cloudFrontId != null ? ", CloudFront ID: " + cloudFrontId : "");
     }
 }
-

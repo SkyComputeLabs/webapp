@@ -354,7 +354,6 @@ build {
     ]
   }
 
-
   #   provisioner "shell" {
   #     inline = [
   #       "echo 'DB_NAME=${var.DB_NAME}' | sudo tee -a /etc/environment",
