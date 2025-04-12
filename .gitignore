@@ -69,4 +69,6 @@ Postman Collections/
 
 ec2_ubuntu.pem
 
+# Ignore build output directories
+target/
 
