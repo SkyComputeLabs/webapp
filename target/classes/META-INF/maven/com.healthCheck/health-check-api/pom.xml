@@ -108,11 +108,11 @@
 		</dependency>
 
 		<!-- For metrics -->
-		<!-- <dependency>
+		<dependency>
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-cloudwatch</artifactId>
 			<version>1.10.0</version>
-		</dependency> -->
+		</dependency>
 
 		<!-- Spring Cloud AWS (Required for CloudWatch auth) -->
 		<dependency>
@@ -146,8 +146,6 @@
 			<artifactId>logstash-logback-encoder</artifactId>
 			<version>7.4</version>
 		</dependency>
-
-
 	</dependencies>
 
 	<dependencyManagement>

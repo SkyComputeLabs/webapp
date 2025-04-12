@@ -1,0 +1,104 @@
+name: CI/CD Pipeline - PR Merged Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  DEMO_ACCOUNT_ID: ${{ secrets.DEMO_ACCOUNT_ID }}
+
+jobs:
+  build-and-deploy:
+    name: Build, AMI, Deploy to AWS Dev and Demo
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Install Dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Build application artifacts
+        run: |
+          cd webapp
+          mvn clean package -DskipTests
+          cp target/*.jar ../application.jar
+
+      - name: Install Packer
+        uses: hashicorp/setup-packer@v2
+        with:
+          version: latest
+
+      - name: Validate Packer Template
+        run: |
+          packer init .
+          packer validate .
+
+      - name: Build AMI with Packer
+        run: |
+          packer build -machine-readable \
+            -var "aws_region=${{ env.AWS_REGION }}" \
+            -var "db_user=${{ secrets.DB_USER }}" \
+            -var "db_pass=${{ secrets.DB_PASS }}" \
+            . | tee packer-output.log
+          AMI_ID=$(awk -F, '/artifact,0,id/ {print $NF}' packer-output.log | cut -d':' -f2)
+          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+
+      - name: Share AMI with Demo AWS Account
+        run: |
+          aws ec2 modify-image-attribute --image-id ${{ env.AMI_ID }} --launch-permission "Add=[{UserId=${{ secrets.DEMO_ACCOUNT_ID }}}]"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+
+      - name: Configure AWS CLI for Demo Account
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID_DEMO }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY_DEMO }}
+          aws configure set region ${{ env.AWS_REGION }}
+
+      - name: Create new Launch Template Version
+        run: |
+          LT_ID=$(aws ec2 describe-launch-templates --query "LaunchTemplates[?LaunchTemplateName=='csye6225_asg'].LaunchTemplateId" --output text)
+          aws ec2 create-launch-template-version --launch-template-id $LT_ID --source-version 1 --launch-template-data "{\"ImageId\":\"${{ env.AMI_ID }}\"}"
+          aws ec2 modify-launch-template --launch-template-id $LT_ID --default-version latest
+          echo "LT_ID=$LT_ID" >> $GITHUB_ENV
+
+      - name: Start Instance Refresh
+        run: |
+          ASG_NAME=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(AutoScalingGroupName, 'web_app_asg')].AutoScalingGroupName" --output text)
+          REFRESH_ID=$(aws autoscaling start-instance-refresh --auto-scaling-group-name $ASG_NAME --preferences '{"MinHealthyPercentage": 100, "InstanceWarmup": 300}' --query "InstanceRefreshId" --output text)
+          echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
+          echo "ASG_NAME=$ASG_NAME" >> $GITHUB_ENV
+
+      - name: Wait for Instance Refresh to Complete
+        run: |
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes --auto-scaling-group-name $ASG_NAME --instance-refresh-ids $REFRESH_ID --query "InstanceRefreshes[0].Status" --output text)
+            echo "Current refresh status: $STATUS"
+            if [[ "$STATUS" == "Successful" ]]; then
+              exit 0
+            elif [[ "$STATUS" == "Failed" ]]; then
+              exit 1
+            fi
+            sleep 30
+          done
+
