@@ -37,9 +37,8 @@ jobs:
 
       - name: Build application artifacts
         run: |
-          cd webapp
           mvn clean package -DskipTests
-          cp target/*.jar ../application.jar
+          cp target/*.jar application.jar
 
       - name: Install Packer
         uses: hashicorp/setup-packer@v2
