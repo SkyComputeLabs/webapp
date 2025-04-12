@@ -40,7 +40,7 @@ Thumbs.db
 HELP.md
 
 # Build artifacts
-# *.jar
+*.jar
 *.war
 
 # Python virtual environment
@@ -69,4 +69,6 @@ Postman Collections/
 
 ec2_ubuntu.pem
 
+# Ignore build output directories
+target/
 

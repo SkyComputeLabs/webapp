@@ -112,6 +112,46 @@ public class HealthCheckController {
 		return ResponseEntity.badRequest().headers(headers).build();
 	}
 
+	@GetMapping("/cicd")
+	public ResponseEntity<Void> checkCICD(@RequestBody(required = false) String body,
+        @RequestParam Map<String, String> queryParams) {
+
+    logger.info("Received CICD check request with body: {} and queryParams: {}", body, queryParams);
+
+    long startTime = System.currentTimeMillis();
+
+    meterRegistry.counter("api.cicd.get.calls").increment();
+
+    try {
+        if ((body != null && !body.isEmpty()) || !queryParams.isEmpty()) {
+            logger.warn("Bad request received for CICD check");
+            meterRegistry.counter("api.cicd.get.bad_request").increment();
+            return ResponseEntity.badRequest().headers(headers).build();
+        }
+
+        healthCheckService.recordHealthCheck();
+        meterRegistry.counter("api.cicd.get.success").increment();
+        return ResponseEntity.ok().headers(headers).build();
+    } catch (HealthCheckException e) {
+        logger.error("CICD check failed due to service unavailability", e);
+        meterRegistry.counter("api.cicd.get.service_unavailable").increment();
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(headers).build();
+    } catch (NotFoundException e) {
+        logger.error("CICD check service not available", e);
+        meterRegistry.counter("api.cicd.get.not_found").increment();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).headers(headers).build();
+    } catch (RuntimeException e) {
+        logger.error("Unexpected error occurred during CICD check", e);
+        meterRegistry.counter("api.cicd.get.service_unavailable").increment();
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(headers).build();
+    } finally {
+        long duration = System.currentTimeMillis() - startTime;
+        meterRegistry.timer("api.cicd.get.latency").record(duration, TimeUnit.MILLISECONDS);
+    }
 }
+
+}
+
+
 
 
