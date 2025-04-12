@@ -49,7 +49,7 @@ variable "DB_NAME" {
 
 variable "DB_HOST" {
   type    = string
-  default = "postgres-instance.cty2wmwmetkd.us-east-2.rds.amazonaws.com"
+  default = "postgres-instance.c5ukym0ay3rj.us-east-2.rds.amazonaws.com"
 }
 
 variable "DB_PORT" {
@@ -250,9 +250,9 @@ build {
       "sudo touch /opt/csye6225/application.properties",
       "echo 'server.port=${var.SERVER_PORT}' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'server.address=${var.SERVER_ADDRESS}' | sudo tee -a /opt/csye6225/application.properties",
-      "echo 'spring.datasource.url=jdbc:postgresql://${var.DB_HOST}:${var.DB_PORT}/${var.DB_NAME}' | sudo tee -a /opt/csye6225/application.properties",
+      # "echo 'spring.datasource.url=jdbc:postgresql://${aws_db_instance.postgres_db.endpoint}:5432/${aws_db_instance.postgres_db.db_name}' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'spring.datasource.username=${var.DB_USER}' | sudo tee -a /opt/csye6225/application.properties",
-      "echo 'spring.datasource.password=${var.DB_PASS}' | sudo tee -a /opt/csye6225/application.properties",
+      # "echo 'spring.datasource.password=$DB_PASSWORD' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'spring.datasource.driver-class-name=org.postgresql.Driver' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'spring.jpa.hibernate.ddl-auto=update' | sudo tee -a /opt/csye6225/application.properties",
@@ -277,8 +277,8 @@ build {
       "echo 'management.metrics.export.cloudwatch.step=1m' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'logging.file.name=/opt/csye6225/application.log' | sudo tee -a /opt/csye6225/application.properties",
       "echo 'logging.level.root=INFO' | sudo tee -a /opt/csye6225/application.properties",
-      "sudo chown csye6225:csye6225 /opt/csye6225/application.properties",
-      "sudo chmod 600 /opt/csye6225/application.properties"
+      "sudo chown root:root /opt/csye6225/application.properties",
+      "sudo chmod 644 /opt/csye6225/application.properties"
     ]
   }
 
