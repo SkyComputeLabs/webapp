@@ -40,7 +40,7 @@ Thumbs.db
 HELP.md
 
 # Build artifacts
-# *.jar
+*.jar
 *.war
 
 # Python virtual environment

@@ -45,7 +45,6 @@ public class FileController {
 	}
 
 	 //valid endpoints
-	 
     @PostMapping
     public ResponseEntity<File> uploadFile(@RequestParam("profilePic") MultipartFile profilePic) {
     	logger.info("Received request to upload file: {}", profilePic.getOriginalFilename());
