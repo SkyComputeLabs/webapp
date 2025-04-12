@@ -60,13 +60,27 @@ jobs:
           AMI_ID=$(awk -F, '/artifact,0,id/ {print $NF}' packer-output.log | cut -d':' -f2)
           echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
 
-      - name: Share AMI with Demo AWS Account
+      - name: Share image with AWS DEMO
         run: |
-          aws ec2 modify-image-attribute --image-id ${{ env.AMI_ID }} --launch-permission "Add=[{UserId=${{ secrets.DEMO_ACCOUNT_ID }}}]"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.AWS_REGION }}
+          # Fetch the latest AMI ID created with the specified name pattern
+          AMI_ID=$(aws ec2 describe-images \
+            --owners self \
+            --filters "Name=name,Values=custom-webapp-*" \
+            --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
+            --output text)
+          
+          if [[ -z "$AMI_ID" ]]; then
+            echo "No AMI found to share. Exiting..."
+            exit 1
+          fi
+          
+          # Share AMI with the demo AWS account
+          aws ec2 modify-image-attribute \
+            --image-id "$AMI_ID" \
+            --launch-permission "Add=[{UserId=${{ secrets.DEMO_ACCOUNT_ID }} }]" \
+            --region "${{ secrets.AWS_REGION }}"
+          
+          echo "AMI $AMI_ID has been shared with the demo account by dev"
 
       - name: Configure AWS CLI for Demo Account
         run: |
