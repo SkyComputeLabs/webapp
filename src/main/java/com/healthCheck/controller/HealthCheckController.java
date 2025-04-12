@@ -149,8 +149,6 @@ public class HealthCheckController {
         meterRegistry.timer("api.cicd.get.latency").record(duration, TimeUnit.MILLISECONDS);
     }
 }
-
-
 }
 
 
