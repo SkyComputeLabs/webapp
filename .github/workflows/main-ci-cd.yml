@@ -71,7 +71,7 @@ jobs:
         run: |
           # Fetch the latest AMI ID created with the specified name pattern
           # AMI_ID=$(aws ec2 describe-images \
-          AMI_ID=${{ steps.packer-build.outputs.ami_id }}
+          AMI_ID="${{ env.AMI_ID }}"
           #  --owners self \
           #  --filters "Name=name,Values=custom-webapp-*" \
           #  --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
