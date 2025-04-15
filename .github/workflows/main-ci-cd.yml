@@ -61,8 +61,8 @@ jobs:
         run: |
           packer build -machine-readable \
             -var "aws_region=${{ env.AWS_REGION }}" \
-            -var "db_user=${{ secrets.DB_USER }}" \
-            -var "db_pass=${{ secrets.DB_PASS }}" \
+            -var "DB_USER=${{ secrets.DB_USER }}" \
+            -var "DB_PASS=${{ secrets.DB_PASS }}" \
             . | tee packer-output.log
           AMI_ID=$(awk -F, '/artifact,0,id/ {print $NF}' packer-output.log | cut -d':' -f2)
           echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
