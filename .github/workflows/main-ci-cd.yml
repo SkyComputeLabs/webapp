@@ -70,13 +70,14 @@ jobs:
       - name: Share image with AWS DEMO
         run: |
           # Fetch the latest AMI ID created with the specified name pattern
-          AMI_ID=$(aws ec2 describe-images \
-            --owners self \
-            --filters "Name=name,Values=custom-webapp-*" \
-            --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
-            --output text)
+          # AMI_ID=$(aws ec2 describe-images \
+          AMI_ID=${{ steps.packer-build.outputs.ami_id }}
+          #  --owners self \
+          #  --filters "Name=name,Values=custom-webapp-*" \
+          #  --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
+          #  --output text)
           
-          if [[ -z "$AMI_ID" ]]; then
+          if [[ -z "$AMI_ID" || "$AMI_ID" == "None" ]]; then
             echo "No AMI found to share. Exiting..."
             exit 1
           fi
@@ -85,9 +86,13 @@ jobs:
           aws ec2 modify-image-attribute \
             --image-id "$AMI_ID" \
             --launch-permission "Add=[{UserId=${{ secrets.DEMO_ACCOUNT_ID }} }]" \
-            --region "${{ secrets.AWS_REGION }}"
+            --region "${{ env.AWS_REGION }}"
           
           echo "AMI $AMI_ID has been shared with the demo account by dev"
+
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Configure AWS CLI for Demo Account
         run: |
