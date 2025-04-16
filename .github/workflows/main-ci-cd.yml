@@ -102,10 +102,12 @@ jobs:
 
       - name: Create new Launch Template Version
         run: |
-          set -e  # exit on any error
+          set -e  
 
           AMI_ID="${{ env.AMI_ID }}"
           LT_NAME="csye6225_asg"
+
+          aws ec2 describe-launch-templates --output table
 
           echo "Fetching Launch Template ID for name: $LT_NAME"
           LT_ID=$(aws ec2 describe-launch-templates \
