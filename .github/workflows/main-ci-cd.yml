@@ -102,15 +102,10 @@ jobs:
 
       - name: Create new Launch Template Version
         run: |
-          LT_ID=$(aws ec2 describe-launch-templates --query "LaunchTemplates[?LaunchTemplateName=='csye6225_asg'].LaunchTemplateId" --output text)
-          aws ec2 create-launch-template-version --launch-template-id $LT_ID --source-version 1 --launch-template-data "{\"ImageId\":\"${{ env.AMI_ID }}\"}"
-          aws ec2 modify-launch-template --launch-template-id $LT_ID --default-version latest
-          echo "LT_ID=$LT_ID" >> $GITHUB_ENV
+          set -e  # exit on any error
 
-      - name: Start Instance Refresh
-        run: |
-          LT_NAME="csye6225_asg"
           AMI_ID="${{ env.AMI_ID }}"
+          LT_NAME="csye6225_asg"
 
           echo "Fetching Launch Template ID for name: $LT_NAME"
           LT_ID=$(aws ec2 describe-launch-templates \
@@ -119,23 +114,33 @@ jobs:
             --output text)
 
           if [[ -z "$LT_ID" || "$LT_ID" == "None" ]]; then
-            echo "Launch Template ID not found for name $LT_NAME"
+            echo "Launch Template ID not found for name '$LT_NAME'"
             exit 1
           fi
-          echo "Launch Template ID: $LT_ID"
 
-          echo "Creating new version of launch template with AMI: $AMI_ID"
+          echo "Launch Template ID: $LT_ID"
+          echo "Using AMI ID: $AMI_ID"
+
+          echo "Creating new launch template version..."
           aws ec2 create-launch-template-version \
             --launch-template-id "$LT_ID" \
             --source-version 1 \
             --launch-template-data "{\"ImageId\":\"$AMI_ID\"}"
 
-          echo "Setting this new version as default"
+          echo "Setting this version as default..."
           aws ec2 modify-launch-template \
             --launch-template-id "$LT_ID" \
             --default-version latest
 
+          echo "Launch Template Version Updated Successfully"
           echo "LT_ID=$LT_ID" >> $GITHUB_ENV
+
+      - name: Start Instance Refresh
+        run: |
+          ASG_NAME=$(aws autoscaling describe-auto-scaling-groups --query "AutoScalingGroups[?contains(AutoScalingGroupName, 'web_app_asg')].AutoScalingGroupName" --output text)
+          REFRESH_ID=$(aws autoscaling start-instance-refresh --auto-scaling-group-name $ASG_NAME --preferences '{"MinHealthyPercentage": 100, "InstanceWarmup": 300}' --query "InstanceRefreshId" --output text)
+          echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
+          echo "ASG_NAME=$ASG_NAME" >> $GITHUB_ENV
 
       - name: Wait for Instance Refresh to Complete
         run: |
