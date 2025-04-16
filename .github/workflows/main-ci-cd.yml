@@ -151,12 +151,22 @@ jobs:
 
       - name: Wait for Instance Refresh to Complete
         run: |
+          echo "Loading ASG and Refresh ID from GitHub environment"
+          source <(grep -E '^(ASG_NAME|REFRESH_ID)=' $GITHUB_ENV)
+          
           while true; do
-            STATUS=$(aws autoscaling describe-instance-refreshes --auto-scaling-group-name $ASG_NAME --instance-refresh-ids $REFRESH_ID --query "InstanceRefreshes[0].Status" --output text)
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name "$ASG_NAME" \
+              --instance-refresh-ids "$REFRESH_ID" \
+              --query "InstanceRefreshes[0].Status" \
+              --output text)
+
             echo "Current refresh status: $STATUS"
             if [[ "$STATUS" == "Successful" ]]; then
+              echo "Instance refresh succeeded!"
               exit 0
             elif [[ "$STATUS" == "Failed" ]]; then
+              echo "Instance refresh failed!"
               exit 1
             fi
             sleep 30
