@@ -44,6 +44,7 @@ public class HealthCheckApiApplicationTests {
 	    void setUp() {
 	        MockitoAnnotations.openMocks(this);
 	    }
+
 	
 	@Test
     public void testGetRequestReturns200() {
