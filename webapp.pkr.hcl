@@ -49,7 +49,7 @@ variable "DB_NAME" {
 
 variable "DB_HOST" {
   type    = string
-  default = "postgres-instance.c5ukym0ay3rj.us-east-2.rds.amazonaws.com"
+  default = "postgres-instance.cty2wmwmetkd.us-east-2.rds.amazonaws.com"
 }
 
 variable "DB_PORT" {
