@@ -112,7 +112,7 @@ public class HealthCheckController {
 		return ResponseEntity.badRequest().headers(headers).build();
 	}
 
-	@GetMapping("/cicd")
+	@GetMapping("/newcicd")
 	public ResponseEntity<Void> checkCICD(@RequestBody(required = false) String body,
         @RequestParam Map<String, String> queryParams) {
 
